@@ -1,25 +1,26 @@
-#define SRC
-#ifdef SRC
+#ifndef SRC_H
+#define SRC_H
 
-/*
-The program saves the different dices into an array that uses the struct Dices
-to quicly calculate the right number of results for each type of dice
-*/
+// Definition of dices types
+typedef enum {
+  D4 = 4,
+  D6 = 6,
+  D8 = 8,
+  D10 = 10,
+  D12 = 12,
+  D20 = 20,
+  D100 = 100
+} DiceType;
 
-// Dice list
+// Struct that contains dice infos
 typedef struct {
-  // number of dice
-  int n;
-  // types od dices
-  enum {
-    D4 = 4,
-    D6 = 6,
-    D8 = 8,
-    D10 = 10,
-    D12 = 12,
-    D20 = 20,
-    D100 = 100
-  } dices_type;
+  int n;               // Number of dices
+  DiceType dices_type; // dice type
 } Dices;
 
-#endif // SRC
+// simple discard
+uint8_t simple_discard_method(int divisor, FILE *rand_reader);
+// GUI initializer
+void genrate_GUI();
+
+#endif // SRC_H

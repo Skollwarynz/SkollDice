@@ -1,21 +1,9 @@
+#include "../include/src.h"
+
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-
-// Dice list
-typedef struct {
-  int n;
-  enum {
-    D4 = 4,
-    D6 = 6,
-    D8 = 8,
-    D10 = 10,
-    D12 = 12,
-    D20 = 20,
-    D100 = 100
-  } dices_type;
-} Dices;
 
 // specifics about the code inside README and /include/src.h
 // Why the function is normally distrubuted explained inside the README
@@ -35,6 +23,9 @@ int main() {
   FILE *rand_reader = fopen("/dev/urandom", "rb");
   // number of dices trhown
   int number_of_dice = 0;
+
+  genrate_GUI();
+
   // array with the number of each type of dice
   Dices types_and_number_of_dices[7] = {
       {100000, D4},  {100000, D6},  {100000, D8},  {100000, D10},
@@ -53,5 +44,6 @@ int main() {
     printf("\n");
     index_dices++;
   }
+
   return 0;
 }
