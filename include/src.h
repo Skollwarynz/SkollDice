@@ -1,6 +1,22 @@
 #ifndef SRC_H
 #define SRC_H
 
+#include "lvgl/lvgl.h"
+#include <unistd.h>
+#include <SDL2/SDL.h>
+#include <stdio.h>
+#include <stdint.h>
+#if defined(_WIN32) || defined(_WIN64)
+  #include <windows.h>
+  #include <ntsecapi.h> 
+  #ifndef SystemFunction036
+    #define SystemFunction036 RtlGenRandom
+    BOOLEAN WINAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
+  #endif
+#else
+  #include <fcntl.h>
+  #include <unistd.h>
+#endif
 // Definition of dices types
 typedef enum {
   D4 = 4,
@@ -20,7 +36,5 @@ typedef struct {
 
 // simple discard
 uint8_t simple_discard_method(int divisor, FILE *rand_reader);
-// GUI initializer
-void genrate_GUI();
 
 #endif // SRC_H
