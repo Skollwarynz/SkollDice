@@ -1,0 +1,36 @@
+pipeline:
+  # --- 1. BUILD LINUX ---
+  build-linux:
+    image: gcc:latest
+    commands:
+      - apt-get update && apt-get install -y cmake libsdl2-dev
+      - mkdir build_linux && cd build_linux
+      - cmake ..
+      - cmake --build . --config Release
+    when:
+      event: tag
+
+  # --- 2. BUILD WINDOWS (Cross-Compilation) ---
+  build-windows:
+    image: debian:bookworm-slim
+    commands:
+      - apt-get update && apt-get install -y cmake mingw-w64 libsdl2-dev
+      - mkdir build_win && cd build_win
+      - cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
+      - cmake --build .
+      - mv MiaApp.exe MiaApp-Windows.exe
+    when:
+      event: tag
+
+  # --- 3. PUBBLICAZIONE SU CODEBERG RELEASES ---
+  release:
+    image: plugins/gitea-release
+    settings:
+      base_url: https://codeberg.org
+      files:
+        - build_linux/MiaApp
+        - build_win/MiaApp-Windows.exe
+      api_key:
+        from_secret: codeberg_token
+    when:
+      event: tag
