@@ -41,11 +41,12 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
-          # Scarica e installa i development libraries di SDL2 per MinGW per evitare errori di include
+          
+          # Scarica SDL2 per MinGW e installa header + librerie
           curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
           tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
-          # Copia gli header SDL2 nella cartella del compilatore MinGW
           sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
+          sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
           
           mkdir build && cd build
           cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
@@ -62,26 +63,18 @@ jobs:
       - uses: actions/setup-java@v4
         with: {distribution: 'zulu', java-version: '17'}
       - uses: android-actions/setup-android@v3
-      - name: Ensure Android Structure & Build APK
+      - name: Build Android APK
         run: |
-          # Se la cartella android non esiste, la creiamo con uno scheletro base per evitare il crash
-          if [ ! -d "android" ]; then
-            echo "Cartella android assente, creo la struttura base per la build..."
-            mkdir -p android/app/src/main
-            # Qui puoi gestire il fallback o lasciare che gradle compili se usi SDL2 con android-project
-          fi
-          
           if [ -d "android" ] && [ -f "android/gradlew" ]; then
             cd android
             chmod +x gradlew
             ./gradlew assembleRelease
           else
-            echo "ATTENZIONE: Manca il gradlew nativo Android. Configura il progetto Android per abilitare l'APK."
+            echo "Errore: La cartella android o il gradlew non sono presenti nel repository."
+            exit 1
           fi
-      - name: Upload APK if exists
+      - name: Upload Android APK
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: SkollDice-Android.apk
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: ignore
