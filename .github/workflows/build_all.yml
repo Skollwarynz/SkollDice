@@ -34,7 +34,7 @@ jobs:
           name: SkollDice-Linux
           path: build_linux/MiaApp
 
-build-macos:
+  build-macos:
     name: Build macOS Native
     runs-on: macos-latest
     steps:
@@ -59,7 +59,7 @@ build-macos:
           name: SkollDice-macOS
           path: build_mac/MiaApp
 
-build-windows:
+  build-windows:
     name: Cross-Compile Windows
     runs-on: ubuntu-latest
     steps:
@@ -101,7 +101,7 @@ build-windows:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK & NDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install NDK via sdkmanager
