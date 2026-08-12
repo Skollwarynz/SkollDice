@@ -56,49 +56,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
-  build-android:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {submodules: recursive}
-      - uses: actions/setup-java@v4
-        with: {distribution: 'zulu', java-version: '17'}
-      - uses: android-actions/setup-android@v3
-      - name: Build Android APK
-        run: |
-          if [ ! -d "android" ]; then
-            echo "Generazione struttura Android per SDL2..."
-            git clone -b SDL2 https://github.com/libsdl-org/SDL.git sdl-temp
-            cp -r sdl-temp/android-project ./android
-            rm -rf sdl-temp
-            
-            mkdir -p android/app/jni/src
-            cp -r src/* android/app/jni/src/ 2>/dev/null || true
-            cp -r include/* android/app/jni/src/ 2>/dev/null || true
-          fi
-          
-          if [ -f "android/app/jni/Android.mk" ]; then
-            sed -i 's/SDL3/SDL2/g' android/app/jni/Android.mk || true
-          fi
-          
-          # Forza l'abilitazione delle dipendenze mancanti per evitare il blocco NDK
-          if [ -f "android/app/jni/Application.mk" ]; then
-            echo "APP_ALLOW_MISSING_DEPS := true" >> android/app/jni/Application.mk
-          else
-            echo "APP_ALLOW_MISSING_DEPS := true" > android/app/jni/Application.mk
-          fi
-          
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-Android.apk
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: ignore
-
   release:
-    needs: [build-linux, build-macos, build-windows, build-android]
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
