@@ -1,0 +1,115 @@
+name: Build App (Linux, Windows, macOS, Android)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-linux:
+    name: Build Linux Native
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libsdl2-dev
+
+      - name: Build Linux
+        run: |
+          mkdir -p build_linux && cd build_linux
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+
+      - name: Upload Linux Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-Linux
+          path: build_linux/MiaApp
+
+  build-windows:
+    name: Cross-Compile Windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
+
+      - name: Build Windows
+        run: |
+          mkdir -p build_win && cd build_win
+          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+
+      - name: Upload Windows Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-Windows
+          path: build_win/MiaApp.exe
+
+  build-macos:
+    name: Build macOS Native
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: brew install sdl2 cmake
+
+      - name: Build macOS
+        run: |
+          mkdir -p build_mac && cd build_mac
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Upload macOS Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-macOS
+          path: build_mac/MiaApp
+
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android NDK
+        uses: nvida/setup-android-ndk@v1
+        with:
+          ndk-version: r25c
+
+      - name: Build APK
+        run: |
+          if [ -d "android" ]; then
+            cd android
+            chmod +x gradlew
+            ./gradlew assembleRelease
+          else
+            echo "Cartella android non presente, skip build APK"
+          fi
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        if: hashFiles('android/app/build/outputs/apk/release/*.apk') != ''
+        with:
+          name: MiaApp-Android-APK
+          path: android/app/build/outputs/apk/release/*.apk
