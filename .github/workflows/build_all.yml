@@ -3,6 +3,8 @@ name: Build App (Linux, Windows, macOS, Android)
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main", "master" ]
 
@@ -128,3 +130,23 @@ jobs:
         with:
           name: SkollDice-Android-APK
           path: android/app/build/outputs/apk/release/*.apk
+
+  create-release:
+    name: Create Official Release
+    needs: [build-linux, build-macos, build-windows, build-android]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            SkollDice-Linux/*
+            SkollDice-macOS/*
+            SkollDice-Windows/*
+            SkollDice-Android-APK/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
