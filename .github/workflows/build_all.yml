@@ -1,74 +1,90 @@
-
-name: Build Android App
+name: Build and Release All
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
+          mkdir build && cd build && cmake .. && make
+          mv MiaApp ../SkollDice-Linux
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Linux, path: SkollDice-Linux}
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          brew install sdl2 cmake
+          mkdir build && cd build && cmake .. && make
+          mv MiaApp ../SkollDice-macOS
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-macOS, path: SkollDice-macOS}
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
-
-      - name: Prepare SDL2 and Project Structure
-        run: |
-          # 1. Clona SDL2 ufficiale
-          git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
           
-          # 2. Crea la struttura android-project di base
-          cp -r sdl-source/android-project ./android
+          curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
+          tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
+          sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
+          sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
+          
+          mkdir build && cd build
+          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
+          make
+          mv MiaApp.exe ../SkollDice-Windows.exe
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
-          # Sposta SDL2 dove CMake può trovarlo facilmente
-          mkdir -p android/app/jni/SDL
-          cp -r sdl-source/include android/app/jni/SDL/
-          cp -r sdl-source/src android/app/jni/SDL/
-          rm -rf sdl-source
-
-          # 3. Copia i sorgenti del gioco e le dipendenze (LVGL)
-          mkdir -p android/app/jni/src
-          mkdir -p android/app/jni/include
-
-          if [ -d "src" ]; then
-            cp -r src/* android/app/jni/src/
-          fi
-          if [ -d "include" ]; then
-            cp -r include/* android/app/jni/include/
-          fi
-          if [ -d "dependencies" ]; then
-            cp -r dependencies/* android/app/jni/
-          fi
-
-          # 4. Pulizia file Windows/MSVC
-          find android/app/jni/ -type d -name "msinttypes" -exec rm -rf {} +
-          find android/app/jni/ -type d -name "VisualStudio" -exec rm -rf {} +
-          find android/app/jni/ -type d -name "test" -exec rm -rf {} +
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Build Android Release App
-        run: |
-          cd android
-          ./gradlew assembleRelease --no-daemon
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: artifacts}
+      
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
-          name: app-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to Codeberg
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases" \
+            -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\": \"$TAG\", \"name\": \"Release $TAG\"}"
+          
+          ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG" \
+            -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" | jq .id)
+          
+          for f in artifacts/**/*; do
+            curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/$ID/assets" \
+              -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
+              -F "attachment=@$f"
+          done
