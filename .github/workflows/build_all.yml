@@ -54,7 +54,10 @@ jobs:
             cp -r dependencies/* android/app/jni/
           fi
           
-          # 5. Scrive un Android.mk con il fix per i tipi standard (stdint.h)
+          # RIMUOVIAMO l'header msinttypes problematico di Visual Studio/ThorVG per Android
+          rm -rf android/app/jni/**/msinttypes/stdint.h
+          
+          # 5. Scrive un Android.mk pulito
           cd android
           
           cat << 'EOF' > app/jni/Android.mk
@@ -113,8 +116,7 @@ jobs:
           all_includes := $(shell find $(LOCAL_PATH) -type d)
           LOCAL_C_INCLUDES := $(LOCAL_PATH)/SDL/include $(all_includes)
           
-          # Forza l'inclusione di stdint.h per evitare errori di tipo uint64_t mancante su Android NDK
-          LOCAL_CFLAGS := -DGL_GLEXT_PROTOTYPES=1 -DUSE_GLES1=0 -include stdint.h
+          LOCAL_CFLAGS := -DGL_GLEXT_PROTOTYPES=1 -DUSE_GLES1=0
           
           LOCAL_STATIC_LIBRARIES := SDL2
           LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -landroid
