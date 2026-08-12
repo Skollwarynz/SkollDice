@@ -41,7 +41,7 @@ jobs:
           cp -r sdl-source/include/* android/app/jni/SDL/include/SDL2/
           rm -rf sdl-source
 
-          # 3. Copia i sorgenti del gioco e le dipendenze (LVGL)
+          # 3. Copia i tuoi sorgenti C e le dipendenze (LVGL)
           mkdir -p android/app/jni/src
           mkdir -p android/app/jni/include
 
@@ -55,7 +55,7 @@ jobs:
             cp -r dependencies/* android/app/jni/
           fi
 
-          # 4. Pulizia file Windows/MSVC e test da LVGL
+          # 4. Pulizia aggressiva file Windows/MSVC e test da LVGL/ThorVG
           find android/app/jni/ -type d -name "msinttypes" -exec rm -rf {} +
           find android/app/jni/ -type d -name "VisualStudio" -exec rm -rf {} +
           find android/app/jni/ -type d -name "test" -exec rm -rf {} +
@@ -68,7 +68,8 @@ jobs:
       - name: Build Android Release App
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          # Pulisce eventuali cache corrotte e compila forzando l'esecuzione senza flag -n
+          ./gradlew clean assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
