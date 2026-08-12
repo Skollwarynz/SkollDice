@@ -1,0 +1,66 @@
+name: Build App (Linux & Windows)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-linux:
+    name: Build Linux Native
+    runs-on: docker
+    container:
+      image: archlinux:latest
+    steps:
+      # 1. Inizializza il sistema e installa git PRIMA del checkout
+      - name: Setup Environment
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm git base-devel cmake sdl2
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Linux
+        run: |
+          mkdir build_linux && cd build_linux
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+
+      - name: Upload Linux Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-Linux
+          path: build_linux/MiaApp
+
+  build-windows:
+    name: Cross-Compile Windows
+    runs-on: docker
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Setup Environment
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm git base-devel cmake mingw-w64-gcc mingw-w64-sdl2
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Windows
+        run: |
+          mkdir build_win && cd build_win
+          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+          cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
+
+      - name: Upload Windows Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-Windows
+          path: |
+            build_win/MiaApp.exe
+            build_win/SDL2.dll
