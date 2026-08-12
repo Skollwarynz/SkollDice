@@ -1,189 +1,100 @@
-name: Build App (Linux, Windows, macOS, Android)
+name: Build and Release All
 
 on:
   push:
-    branches: [ "main", "master" ]
     tags:
       - 'v*'
-  pull_request:
-    branches: [ "main", "master" ]
 
 permissions:
   contents: write
 
 jobs:
   build-linux:
-    name: Build Linux Native
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
           sudo apt-get install -y build-essential cmake libsdl2-dev
-
-      - name: Build Linux
-        run: |
-          rm -rf build_linux
-          mkdir -p build_linux && cd build_linux
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-          make -j$(nproc)
-          mv MiaApp SkollDice-Linux || true
-
-      - name: Upload Linux Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-Linux
-          path: build_linux/SkollDice-Linux
+          mkdir build && cd build && cmake .. && make
+          mv MiaApp ../SkollDice-Linux
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Linux, path: SkollDice-Linux}
 
   build-macos:
-    name: Build macOS Native
     runs-on: macos-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Dependencies
-        run: brew install sdl2 cmake
-
-      - name: Build macOS
-        run: |
-          rm -rf build_mac
-          mkdir -p build_mac && cd build_mac
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-          make -j$(sysctl -n hw.ncpu)
-          mv MiaApp SkollDice-macOS || true
-
-      - name: Upload macOS Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-macOS
-          path: build_mac/SkollDice-macOS
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          brew install sdl2 cmake
+          mkdir build && cd build && cmake .. && make
+          mv MiaApp ../SkollDice-macOS
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-macOS, path: SkollDice-macOS}
 
   build-windows:
-    name: Cross-Compile Windows
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Dependencies & Setup SDL2 MinGW
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 wget tar
-          
-          wget https://www.libsdl.org/release/SDL2-devel-2.28.5-mingw.tar.gz
-          tar -xvf SDL2-devel-2.28.5-mingw.tar.gz
-          sudo cp -r SDL2-2.28.5/x86_64-w64-mingw32/* /usr/x86_64-w64-mingw32/
-
-      - name: Build Windows
-        run: |
-          rm -rf build_win
-          mkdir -p build_win && cd build_win
-          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
-          make -j$(nproc)
-          mv MiaApp.exe SkollDice-Windows.exe || true
-
-      - name: Upload Windows Executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-Windows.exe
-          path: build_win/SkollDice-Windows.exe
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
+          # (Configura qui il tuo toolchain se necessario)
+          mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake .. && make
+          mv MiaApp.exe ../SkollDice-Windows.exe
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
   build-android:
-    name: Build Android APK
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK via sdkmanager
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.2.9519653"
-
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - uses: actions/setup-java@v4
+        with: {distribution: 'zulu', java-version: '17'}
+      - uses: android-actions/setup-android@v3
       - name: Build APK
         run: |
-          if [ -d "android" ]; then
-            cd android
-            chmod +x gradlew
-            ./gradlew assembleRelease
-            cd ..
-            find android/app/build/outputs/apk/release/ -name "*.apk" -exec mv {} SkollDice-Android.apk \;
-          else
-            echo "Cartella android non presente, skip build APK"
-          fi
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        if: hashFiles('SkollDice-Android.apk') != ''
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      - uses: actions/upload-artifact@v4
         with:
           name: SkollDice-Android.apk
-          path: SkollDice-Android.apk
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
 
-  create-github-release:
-    name: Create GitHub Release
+  release:
     needs: [build-linux, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        with: {path: artifacts}
+      
+      # Release su GitHub
+      - uses: softprops/action-gh-release@v2
         with:
-          path: release_assets
-
-      - name: Create GitHub Release and Upload Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: release_assets/**/*
+          files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  create-codeberg-release:
-    name: Create Codeberg Release
-    needs: [build-linux, build-macos, build-windows, build-android]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release_assets
-
-      - name: Upload binaries to Codeberg Release
+      # Release su Codeberg
+      - name: Upload to Codeberg
         run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-
+          TAG=${GITHUB_REF#refs/tags/}
+          # Crea la Release su Codeberg
           curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases" \
-            -H "accept: application/json" \
             -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"tag_name\": \"$TAG_NAME\", \"name\": \"Release $TAG_NAME\", \"body\": \"Automated multiplatform release v0.0.1\"}"
-
-          RELEASE_ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG_NAME" \
+            -d "{\"tag_name\": \"$TAG\", \"name\": \"Release $TAG\"}"
+          
+          # Recupera ID
+          ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG" \
             -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" | jq .id)
-
-          for file in $(find release_assets -type f); do
-            curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/$RELEASE_ID/assets" \
+          
+          # Carica file uno ad uno
+          for f in artifacts/**/*; do
+            curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/$ID/assets" \
               -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
-              -H "Content-Type: multipart/form-data" \
-              -F "attachment=@$file"
+              -F "attachment=@$f"
           done
