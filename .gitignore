@@ -7,3 +7,10 @@ build/
 build_linux/
 build_win/
 build_mac/
+
+build/
+build_linux/
+build_win/
+build_mac/
+CMakeCache.txt
+CMakeFiles/
