@@ -2,3 +2,8 @@
 build/
 build_win/
 build_linux/
+
+build/
+build_linux/
+build_win/
+build_mac/
