@@ -176,7 +176,7 @@ jobs:
             -H "accept: application/json" \
             -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"tag_name\": \"$TAG_NAME\", \"name\": \"Release $TAG_NAME\", \"body\": \"Automated multiplatform release\"}"
+            -d "{\"tag_name\": \"$TAG_NAME\", \"name\": \"Release $TAG_NAME\", \"body\": \"Automated multiplatform release v0.0.1\"}"
 
           RELEASE_ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG_NAME" \
             -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" | jq .id)
