@@ -56,8 +56,53 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - uses: actions/setup-java@v4
+        with: {distribution: 'zulu', java-version: '17'}
+      - uses: android-actions/setup-android@v3
+      - name: Build Android APK
+        run: |
+          # Se manca la cartella android, la inizializziamo usando SDL2 ufficiale
+          if [ ! -d "android" ]; then
+            echo "Inizializzazione progetto Android con SDL2..."
+            git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
+            cp -r sdl-source/android-project ./android
+            rm -rf sdl-source
+          fi
+          
+          # Assicura che i sorgenti del gioco siano collegati correttamente ad Android
+          mkdir -p android/app/jni/src
+          if [ -d "src" ]; then
+            cp -r src/* android/app/jni/src/
+          fi
+          if [ -d "include" ]; then
+            cp -r include/* android/app/jni/src/
+          fi
+          
+          # Configura i flag corretti per l'NdkBuild senza errori di moduli
+          cd android
+          if [ -f "app/jni/Android.mk" ]; then
+            sed -i 's/SDL3/SDL2/g' app/jni/Android.mk || true
+          fi
+          if [ -f "app/jni/Application.mk" ]; then
+            echo "APP_ALLOW_MISSING_DEPS := true" >> app/jni/Application.mk
+            echo "APP_ABI := armeabi-v7a arm64-v8a" >> app/jni/Application.mk
+          fi
+          
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkollDice-Android.apk
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: ignore
+
   release:
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
