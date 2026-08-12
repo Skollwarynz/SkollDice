@@ -9,15 +9,18 @@ on:
 jobs:
   build-linux:
     name: Build Linux Native
-    runs-on: ubuntu-latest
+    runs-on: codeberg
+    container:
+      image: archlinux:latest
     steps:
+      - name: Setup Keys and Git
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm git base-devel cmake sdl2
+
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake libsdl2-dev
 
       - name: Build Linux
         run: |
@@ -33,24 +36,30 @@ jobs:
 
   build-windows:
     name: Cross-Compile Windows
-    runs-on: ubuntu-latest
+    runs-on: codeberg
+    container:
+      image: archlinux:latest
     steps:
+      - name: Setup Keys and MinGW
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm git base-devel cmake mingw-w64-gcc mingw-w64-sdl2
+
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 libsdl2-dev
 
       - name: Build Windows
         run: |
           mkdir build_win && cd build_win
           cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
           make -j$(nproc)
+          cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
 
       - name: Upload Windows Executable
         uses: actions/upload-artifact@v4
         with:
           name: MiaApp-Windows
-          path: build_win/MiaApp.exe
+          path: |
+            build_win/MiaApp.exe
+            build_win/SDL2.dll
