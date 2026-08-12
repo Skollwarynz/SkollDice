@@ -35,9 +35,10 @@ jobs:
           # Pulisci la repository temporanea di SDL
           rm -rf sdl-source
           
-          # 4. Assicura che i sorgenti e gli include del gioco siano posizionati correttamente
+          # 4. Configurazione delle cartelle sorgente e dipendenze
           mkdir -p android/app/jni/src
           mkdir -p android/app/jni/include
+          
           if [ -d "src" ]; then
             cp -r src/* android/app/jni/src/
           fi
@@ -45,7 +46,12 @@ jobs:
             cp -r include/* android/app/jni/include/
           fi
           
-          # 5. Scrive un Android.mk corretto con i giusti path di inclusione e senza flag superflui
+          # Copia le dipendenze dalla cartella dependencies nella root
+          if [ -d "dependencies" ]; then
+            cp -r dependencies/* android/app/jni/
+          fi
+          
+          # 5. Scrive un Android.mk aggiornato che include i path di dependencies
           cd android
           
           cat << 'EOF' > app/jni/Android.mk
@@ -96,13 +102,17 @@ jobs:
           include $(CLEAR_VARS)
           LOCAL_MODULE := main
           
-          game_files := $(wildcard $(LOCAL_PATH)/src/*.c $(LOCAL_PATH)/src/*.cpp $(LOCAL_PATH)/src/*.cc)
-          LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(game_files))
+          game_files := $(wildcard $(LOCAL_PATH)/src/*.c $(LOCAL_PATH)/src/*.cpp $(LOCAL_PATH)/src/*.cc $(LOCAL_PATH)/src/**/*.c $(LOCAL_PATH)/src/**/*.cpp)
           
-          # Includiamo sia SDL che la cartella include locale
-          LOCAL_C_INCLUDES := $(LOCAL_PATH)/SDL/include $(LOCAL_PATH)/include
+          # Se dentro dependencies ci sono file C/C++ (es. lvgl), li compiliamo insieme
+          dep_files := $(wildcard $(LOCAL_PATH)/*/*.c $(LOCAL_PATH)/*/*.cpp $(LOCAL_PATH)/*/*/*.c $(LOCAL_PATH)/*/*/*.cpp)
+          
+          LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(game_files) $(dep_files))
+          
+          # Includiamo i path di SDL, include locale e la cartella jni stessa per trovare le dependencies
+          LOCAL_C_INCLUDES := $(LOCAL_PATH)/SDL/include $(LOCAL_PATH)/include $(LOCAL_PATH)
           LOCAL_STATIC_LIBRARIES := SDL2
-          LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -landroid -latomic
+          LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -landroid
           include $(BUILD_SHARED_LIBRARY)
           EOF
 
