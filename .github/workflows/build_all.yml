@@ -44,7 +44,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
           
-          # Scarica SDL2 per MinGW e installa header + librerie
           curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
           tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
           sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
@@ -57,14 +56,50 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - uses: actions/setup-java@v4
+        with: {distribution: 'zulu', java-version: '17'}
+      - uses: android-actions/setup-android@v3
+      - name: Build Android APK
+        run: |
+          # Se la cartella android non esiste nel repo, la genera sfruttando il template ufficiale SDL2
+          if [ ! -d "android" ]; then
+            echo "Generazione struttura Android con SDL2..."
+            git clone https://github.com/libsdl-org/SDL.git sdl-temp
+            cp -r sdl-temp/android-project ./android
+            rm -rf sdl-temp
+            # Copia il codice sorgente del tuo progetto dentro il template Android se necessario
+            mkdir -p android/app/jni/src
+            cp -r src/* android/app/jni/src/ 2>/dev/null || true
+            cp -r include/* android/app/jni/src/ 2>/dev/null || true
+          fi
+          
+          if [ -f "android/gradlew" ]; then
+            cd android
+            chmod +x gradlew
+            ./gradlew assembleRelease
+          else
+            cd android
+            gradle wrapper
+            ./gradlew assembleRelease
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkollDice-Android.apk
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: ignore
+
   release:
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with: {path: artifacts}
       
-      # Crea la Release su GitHub solo se viene pushato un tag (es. v0.0.1)
       - name: Release to GitHub
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
@@ -73,7 +108,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Crea la Release su Codeberg solo se viene pushato un tag
       - name: Upload to Codeberg
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
