@@ -32,12 +32,13 @@ jobs:
           mkdir -p build_linux && cd build_linux
           cmake -DCMAKE_BUILD_TYPE=Release ..
           make -j$(nproc)
+          mv MiaApp SkollDice-Linux || true
 
       - name: Upload Linux Binary
         uses: actions/upload-artifact@v4
         with:
           name: SkollDice-Linux
-          path: build_linux/MiaApp
+          path: build_linux/SkollDice-Linux
 
   build-macos:
     name: Build macOS Native
@@ -57,12 +58,13 @@ jobs:
           mkdir -p build_mac && cd build_mac
           cmake -DCMAKE_BUILD_TYPE=Release ..
           make -j$(sysctl -n hw.ncpu)
+          mv MiaApp SkollDice-macOS || true
 
       - name: Upload macOS Binary
         uses: actions/upload-artifact@v4
         with:
           name: SkollDice-macOS
-          path: build_mac/MiaApp
+          path: build_mac/SkollDice-macOS
 
   build-windows:
     name: Cross-Compile Windows
@@ -88,12 +90,13 @@ jobs:
           mkdir -p build_win && cd build_win
           cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
           make -j$(nproc)
+          mv MiaApp.exe SkollDice-Windows.exe || true
 
       - name: Upload Windows Executable
         uses: actions/upload-artifact@v4
         with:
-          name: SkollDice-Windows
-          path: build_win/MiaApp.exe
+          name: SkollDice-Windows.exe
+          path: build_win/SkollDice-Windows.exe
 
   build-android:
     name: Build Android APK
@@ -123,16 +126,18 @@ jobs:
             cd android
             chmod +x gradlew
             ./gradlew assembleRelease
+            cd ..
+            find android/app/build/outputs/apk/release/ -name "*.apk" -exec mv {} SkollDice-Android.apk \;
           else
             echo "Cartella android non presente, skip build APK"
           fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: hashFiles('android/app/build/outputs/apk/release/*.apk') != ''
+        if: hashFiles('SkollDice-Android.apk') != ''
         with:
-          name: SkollDice-Android-APK
-          path: android/app/build/outputs/apk/release/*.apk
+          name: SkollDice-Android.apk
+          path: SkollDice-Android.apk
 
   create-github-release:
     name: Create GitHub Release
@@ -142,15 +147,13 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: release_assets
 
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            SkollDice-Linux/*
-            SkollDice-macOS/*
-            SkollDice-Windows/*
-            SkollDice-Android-APK/*
+          files: release_assets/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -162,24 +165,23 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: release_assets
 
       - name: Upload binaries to Codeberg Release
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
 
-          # Crea la Release su Codeberg tramite API Forgejo/Gitea
           curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases" \
             -H "accept: application/json" \
             -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"tag_name\": \"$TAG_NAME\", \"name\": \"Release $TAG_NAME\", \"body\": \"Automated multiplatform release\"}"
 
-          # Recupera l'ID della release creata
           RELEASE_ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG_NAME" \
             -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" | jq .id)
 
-          # Carica i file compilati nella release di Codeberg
-          for file in $(find . -type f \( -name "*.exe" -o -name "*.apk" -o -name "MiaApp" \)); do
+          for file in $(find release_assets -type f); do
             curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/$RELEASE_ID/assets" \
               -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
               -H "Content-Type: multipart/form-data" \
