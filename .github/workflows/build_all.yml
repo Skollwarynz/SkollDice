@@ -1,31 +1,4 @@
-name: Build Android App
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.1.10909125'
-
-      - name: Prepare SDL2 and Android Structure
+- name: Prepare SDL2 and Android Structure
         run: |
           # 1. Clona SDL2 ufficiale
           git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
@@ -55,19 +28,9 @@ jobs:
             cp -r dependencies/* android/app/jni/
           fi
 
-          # Rimuove la cartella msinttypes di rapidjson che rompeva la compilazione
+          # PULIZIA CRITICA: Rimuove file Windows/MSVC e test da LVGL che fanno fallire Clang
           find android/app/jni/ -type d -name "msinttypes" -exec rm -rf {} +
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Build Android Release App
-        run: |
-          cd android
-          ./gradlew assembleRelease --no-daemon
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          find android/app/jni/ -type d -name "VisualStudio" -exec rm -rf {} +
+          find android/app/jni/ -type d -name "test" -exec rm -rf {} +
+          find android/app/jni/ -type f -name "*.vcxproj" -delete
+          find android/app/jni/ -type f -name "*.sln" -delete
