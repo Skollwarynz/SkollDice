@@ -21,7 +21,7 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Build Android APK
         run: |
-          # 1. Clona SDL2 ufficiale per prendere sia android-project che i sorgenti nativi
+          # 1. Clona SDL2 ufficiale
           git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
           
           # 2. Copia la struttura base di Android
@@ -31,6 +31,10 @@ jobs:
           mkdir -p android/app/jni/SDL
           cp -r sdl-source/include android/app/jni/SDL/
           cp -r sdl-source/src android/app/jni/SDL/
+          
+          # Creiamo un alias SDL2/SDL.h per soddisfare #include <SDL2/SDL.h>
+          mkdir -p android/app/jni/SDL/include/SDL2
+          cp -r sdl-source/include/* android/app/jni/SDL/include/SDL2/
           
           # Pulisci la repository temporanea di SDL
           rm -rf sdl-source
@@ -46,12 +50,11 @@ jobs:
             cp -r include/* android/app/jni/include/
           fi
           
-          # Copia le dipendenze dalla cartella dependencies nella root
           if [ -d "dependencies" ]; then
             cp -r dependencies/* android/app/jni/
           fi
           
-          # 5. Scrive un Android.mk aggiornato che include i path di dependencies
+          # 5. Scrive un Android.mk pulito senza duplicazioni
           cd android
           
           cat << 'EOF' > app/jni/Android.mk
@@ -102,14 +105,10 @@ jobs:
           include $(CLEAR_VARS)
           LOCAL_MODULE := main
           
-          game_files := $(wildcard $(LOCAL_PATH)/src/*.c $(LOCAL_PATH)/src/*.cpp $(LOCAL_PATH)/src/*.cc $(LOCAL_PATH)/src/**/*.c $(LOCAL_PATH)/src/**/*.cpp)
+          # Prende solo i file in src/ ed evita conflitti con le dipendenze esterne se già incluse altrove
+          game_files := $(wildcard $(LOCAL_PATH)/src/*.c $(LOCAL_PATH)/src/*.cpp $(LOCAL_PATH)/src/*.cc)
+          LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(game_files))
           
-          # Se dentro dependencies ci sono file C/C++ (es. lvgl), li compiliamo insieme
-          dep_files := $(wildcard $(LOCAL_PATH)/*/*.c $(LOCAL_PATH)/*/*.cpp $(LOCAL_PATH)/*/*/*.c $(LOCAL_PATH)/*/*/*.cpp)
-          
-          LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(game_files) $(dep_files))
-          
-          # Includiamo i path di SDL, include locale e la cartella jni stessa per trovare le dependencies
           LOCAL_C_INCLUDES := $(LOCAL_PATH)/SDL/include $(LOCAL_PATH)/include $(LOCAL_PATH)
           LOCAL_STATIC_LIBRARIES := SDL2
           LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -landroid
