@@ -1,0 +1,3 @@
+/usr/bin/cmake -E rm -f CMakeFiles/MiaApp.dir/objects.a
+/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/MiaApp.dir/objects.a @CMakeFiles/MiaApp.dir/objects1.rsp
+/usr/bin/x86_64-w64-mingw32-gcc -O3 -DNDEBUG -mwindows -Wl,--whole-archive CMakeFiles/MiaApp.dir/objects.a -Wl,--no-whole-archive -o MiaApp.exe -Wl,--out-implib,libMiaApp.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/MiaApp.dir/linkLibs.rsp

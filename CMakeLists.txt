@@ -1,10 +1,13 @@
-cmake_minimum_required(VERSION 3.15)
-project(MiaApp VERSION 1.0.0 LANGUAGES C)
+cmake_minimum_required(VERSION 3.10)
+project(MiaApp C)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 
-# Includi le cartelle per gli header (.h)
+add_compile_options(-O3 -Wall)
+add_definitions(-DLV_CONF_INCLUDE_SIMPLE)
+
 include_directories(
     .
     include
@@ -13,30 +16,32 @@ include_directories(
     dependencies/lvgl/src
 )
 
-# Cerca la libreria grafica SDL2
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+# 1. Sorgenti della tua applicazione (SOLO la cartella src principale)
+file(GLOB APP_SRCS "src/*.c")
 
-# Raccoglie automaticamente i sorgenti (.c)
-file(GLOB_RECURSE APP_SOURCES "src/*.c")
-file(GLOB_RECURSE LVGL_SOURCES "dependencies/lvgl/src/*.c")
+# 2. Sorgenti di LVGL (ricorsivo solo nelle dipendenze)
+file(GLOB_RECURSE LVGL_SRCS "dependencies/lvgl/src/*.c")
 
-set(SOURCES ${APP_SOURCES} ${LVGL_SOURCES})
+# Unisci le liste
+set(SRCS ${APP_SRCS} ${LVGL_SRCS})
 
-# Se c'è un file di risorse icona per Windows (.rc)
-if(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources.rc")
-    list(APPEND SOURCES resources.rc)
-endif()
+add_executable(MiaApp ${SRCS})
 
-# Crea l'eseguibile principale
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-# Collega SDL2 e la libreria matematica (-lm)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES} m)
-
-# Impostazioni specifiche per Windows
 if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE bcrypt)
-    # Nasconde la finestra del terminale di sfondo in Release
-    set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_libraries(MiaApp PRIVATE 
+        mingw32 
+        SDL2main 
+        SDL2 
+        advapi32 
+        bcrypt 
+        winmm 
+        imm32 
+        version 
+        setupapi
+    )
+    target_link_options(MiaApp PRIVATE -mwindows)
+else()
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+    target_link_libraries(MiaApp PRIVATE ${SDL2_LIBRARIES} m)
 endif()

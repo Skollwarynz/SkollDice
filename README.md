@@ -8,20 +8,26 @@ The idea was to fix the problem of both physical and digital dices. This can hel
 
 For any suggestion or expansion you can open an issue request and if useful I will add the feature. 
 
-
-
 ## Architecture
 
 The program uses two methods to produces normally distrubuted fully random numbers: 
 
 - Simple linear method 
 
-- Complex linear method
+The method is explained in the section 5.1 of the [NIST Special Publication 800-90A](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-90Ar1.pdf) so for the full explanation you can read the document directly. 
 
-The two methods are explained in the section 5.1 and 5.2 of the [NIST Special Publication 800-90A](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-90Ar1.pdf) so for the full explanation you can read the document directly. 
+The idea is to produce a single numbers (a 1 dice throw) using the Simple linear method because recommended for it. When the program produces multiple dice throw the generator will use automatically the complex linear method to produce better results. 
 
-The idea is to produce a single numbers (a 1 dice throw) using the Simple linear method because recommended for it. When the program produces multiple dice trhow the generator will use automatically the complex linear method to produce better results. 
+Each byte is read by /dev/urandom beacause it produces fully cryptograpically secure randomized number is produced. As we generate each byte of the number we secure the full randomization throught the use of the linear method.
+
+For windows the function used was RtlGenRandom that tecnically should produce similar behaviour of urandom for Unix systems. 
 
 
 
-Each byte is read by /dev/urandom beacause it produces fully cryptograpically secure randomized number is produced. As we generate each byte of the number we secure the full randomization throught the use of the linear method. This simple setup of app hides profound and difficult research about the true randomization on application used for computer science or little programs. 
+## How to report bug
+
+If you find a bug please go to the "Issue" section and open a new one were you try to explain me the input, and behaviour of the program so I can work on fixing it. Thank you! 
+
+## Suggestion
+
+This was my real first big project where I put a simple user infterface, if you have idea for little changes or option fell free to open an issue and suggest them. I will consider and eventually implemement in the next release. 

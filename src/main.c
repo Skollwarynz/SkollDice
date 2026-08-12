@@ -19,7 +19,7 @@ lv_obj_t *text_D100;
 lv_obj_t *label_output;
 lv_obj_t *screen;
 
-void shutdown(lv_event_t * e){
+void shutdown_app(lv_event_t * e){
     lv_event_code_t code = lv_event_get_code(e);
     if(code == LV_EVENT_CLICKED){
       if (screen != NULL) {
@@ -38,18 +38,25 @@ void shutdown(lv_event_t * e){
 void clear_textarea(){
   const char* D4 = lv_textarea_get_text(text_D4);
   types_and_number_of_dices[0].n = atoi(D4);
+  lv_textarea_set_text(text_D4, "");
   const char* D6 = lv_textarea_get_text(text_D6);
   types_and_number_of_dices[1].n = atoi(D6);
+  lv_textarea_set_text(text_D6, "");
   const char* D8 = lv_textarea_get_text(text_D8);
   types_and_number_of_dices[2].n = atoi(D8);
+  lv_textarea_set_text(text_D8, "");
   const char* D10 = lv_textarea_get_text(text_D10);
   types_and_number_of_dices[3].n = atoi(D10);
+  lv_textarea_set_text(text_D10, "");
   const char* D12 = lv_textarea_get_text(text_D12);
   types_and_number_of_dices[4].n = atoi(D12);
+  lv_textarea_set_text(text_D12, "");
   const char* D20 = lv_textarea_get_text(text_D20);
   types_and_number_of_dices[5].n = atoi(D20);
+  lv_textarea_set_text(text_D20, "");
   const char* D100 = lv_textarea_get_text(text_D100);
   types_and_number_of_dices[6].n = atoi(D100);
+  lv_textarea_set_text(text_D100, "");
 }
 
 static void calculate (lv_event_t * e)
@@ -71,7 +78,7 @@ static void calculate (lv_event_t * e)
           }
           for (int i = 0; i < number_of_generations; i++) {
             #if defined(_WIN32) || defined(_WIN64)
-              windows_random();   
+              int value = windows_random(types_and_number_of_dices[index_dices].dices_type);   
             #else
               int value = simple_discard_method(
                 types_and_number_of_dices[index_dices].dices_type, rand_reader);
@@ -89,7 +96,7 @@ static void calculate (lv_event_t * e)
     }
 }
 
-int main(){
+int main(int argc, char *argv[]){
   lv_init();
   lv_sdl_window_create(540, 960);
   lv_obj_t *screen = lv_obj_create(lv_screen_active());
@@ -102,7 +109,7 @@ int main(){
   lv_group_set_default(g);
   lv_indev_t * wheel = lv_sdl_mousewheel_create();
   lv_indev_set_group(wheel, g);
-  lv_indev_t * mouse = lv_sdl_mouse_create();
+  lv_sdl_mouse_create();
   lv_indev_t * kb_indev = lv_sdl_keyboard_create();
   static int32_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
   static int32_t row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -187,7 +194,7 @@ int main(){
   lv_obj_t *button_of_shutdown = lv_button_create(output_flex);
   lv_obj_t *label_of_shutdown = lv_label_create(button_of_shutdown);
   lv_label_set_text(label_of_shutdown, "Close app");
-  lv_obj_add_event_cb(button_of_shutdown, shutdown, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(button_of_shutdown, shutdown_app, LV_EVENT_ALL, NULL);
 
   #if defined(_WIN32) || defined(_WIN64)
   #else
@@ -209,13 +216,19 @@ int main(){
   lv_obj_center(screen);
 
   // while infinito per il gioco che funzioni piu di una volta prob su raylib
-  while (1) {          
-          // Esegue i task di LVGL (gestione touch/click, ridegno grafici, animazioni)
-          uint32_t time_till_next = lv_timer_handler();
-          // Pausa breve per liberare la CPU ed evitare che usi il 100% della risorsa
-          // Convertiamo il tempo in microsecondi per usleep
-          usleep(time_till_next * 1000);
-  }
+while (1) { // Meglio evitare while(1) per permettere una chiusura pulita
+    // Esegue i task di LVGL e restituisce i ms da attendere prima del prossimo task
+    uint32_t time_till_next = lv_timer_handler();
+
+    // Se LVGL dice che può attendere un po', glielo concediamo.
+    // Ma con un cap massimo (es. 10ms) per mantenere l'interfaccia sempre reattiva.
+    if (time_till_next > 10) {
+        time_till_next = 10;
+    }
+
+    // SDL_Delay accetta già i millisecondi (NON moltiplicare per 1000!)
+    SDL_Delay(time_till_next);
+}
 
   return 0;
 }

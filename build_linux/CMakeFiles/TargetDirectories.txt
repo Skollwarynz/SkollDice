@@ -1,0 +1,3 @@
+/home/skollwarynz/DnD_truly_random_dice/build_linux/CMakeFiles/MiaApp.dir
+/home/skollwarynz/DnD_truly_random_dice/build_linux/CMakeFiles/edit_cache.dir
+/home/skollwarynz/DnD_truly_random_dice/build_linux/CMakeFiles/rebuild_cache.dir

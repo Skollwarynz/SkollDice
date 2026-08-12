@@ -1,29 +1,21 @@
 pipeline:
-  build-and-release:
-    image: gcc:latest
+  build-linux:
+    image: archlinux:latest
     commands:
-      # Dipendenze e compilazione Linux
-      - apt-get update && apt-get install -y cmake libsdl2-dev mingw-w64
+      - pacman-key --init
+      - pacman-key --populate archlinux
+      - pacman -Sy --noconfirm git base-devel cmake sdl2
       - mkdir build_linux && cd build_linux
-      - cmake ..
-      - cmake --build . --config Release
-      - cd ..
-      
-      # Cross-compilazione Windows (.exe)
-      - mkdir build_win && cd build_win
-      - cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
-      - cmake --build .
-      - mv MiaApp.exe MiaApp-Windows.exe
-      - cd ..
+      - cmake -DCMAKE_BUILD_TYPE=Release ..
+      - make -j$(nproc)
 
-      # Creazione Release automatica su Codeberg
-      - plugin: gitea-release
-        settings:
-          base_url: https://codeberg.org
-          files:
-            - build_linux/MiaApp
-            - build_win/MiaApp-Windows.exe
-          api_key:
-            from_secret: codeberg_token
-    when:
-      event: tag
+  build-windows:
+    image: archlinux:latest
+    commands:
+      - pacman-key --init
+      - pacman-key --populate archlinux
+      - pacman -Sy --noconfirm git base-devel cmake mingw-w64-gcc mingw-w64-sdl2
+      - mkdir build_win && cd build_win
+      - cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
+      - make -j$(nproc)
+      - cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
