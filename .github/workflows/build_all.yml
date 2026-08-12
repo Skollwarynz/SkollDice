@@ -66,15 +66,21 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Build Android APK
         run: |
-          # Se manca la cartella android, la inizializziamo usando SDL2 ufficiale
-          if [ ! -d "android" ]; then
-            echo "Inizializzazione progetto Android con SDL2..."
-            git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
-            cp -r sdl-source/android-project ./android
-            rm -rf sdl-source
-          fi
+          # 1. Clona SDL2 ufficiale per prendere sia android-project che i sorgenti nativi
+          git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
           
-          # Assicura che i sorgenti del gioco siano collegati correttamente ad Android
+          # 2. Copia la struttura base di Android
+          cp -r sdl-source/android-project ./android
+          
+          # 3. Copia i sorgenti di SDL2 dentro jni/ in modo che NdkBuild possa compilarlo correttamente
+          mkdir -p android/app/jni/SDL
+          cp -r sdl-source/include android/app/jni/SDL/
+          cp -r sdl-source/src android/app/jni/SDL/
+          
+          # Pulisci la repository temporanea di SDL
+          rm -rf sdl-source
+          
+          # 4. Assicura che i sorgenti del gioco siano collegati correttamente ad Android
           mkdir -p android/app/jni/src
           if [ -d "src" ]; then
             cp -r src/* android/app/jni/src/
@@ -83,14 +89,42 @@ jobs:
             cp -r include/* android/app/jni/src/
           fi
           
-          # Configura i flag corretti per l'NdkBuild senza errori di moduli
+          # 5. Configura i flag e genera un Android.mk dinamico
           cd android
-          if [ -f "app/jni/Android.mk" ]; then
-            sed -i 's/SDL3/SDL2/g' app/jni/Android.mk || true
-          fi
+          
+          cat << 'EOF' > app/jni/Android.mk
+          LOCAL_PATH := $(call my-dir)
+
+          # Includi SDL2
+          include $(CLEAR_VARS)
+          LOCAL_MODULE := SDL2
+          SDL_PATH := SDL
+          LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include
+          
+          file_list := $(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/*.c $(LOCAL_PATH)/$(SDL_PATH)/src/**/*.c)
+          LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(file_list))
+          
+          LOCAL_CFLAGS := -DGL_GLEXT_PROTOTYPES=1 -DUSE_GLES1=0
+          LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -landroid
+          include $(BUILD_SHARED_LIBRARY)
+
+          # Includi il tuo gioco (main)
+          include $(CLEAR_VARS)
+          LOCAL_MODULE := main
+          
+          game_files := $(wildcard $(LOCAL_PATH)/src/*.c $(LOCAL_PATH)/src/*.cpp $(LOCAL_PATH)/src/*.cc)
+          LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(game_files))
+          
+          LOCAL_C_INCLUDES := $(LOCAL_PATH)/SDL/include
+          LOCAL_SHARED_LIBRARIES := SDL2
+          LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -landroid -latomic
+          include $(BUILD_SHARED_LIBRARY)
+          EOF
+
           if [ -f "app/jni/Application.mk" ]; then
             echo "APP_ALLOW_MISSING_DEPS := true" >> app/jni/Application.mk
             echo "APP_ABI := armeabi-v7a arm64-v8a" >> app/jni/Application.mk
+            echo "APP_PLATFORM := android-21" >> app/jni/Application.mk
           fi
           
           chmod +x gradlew
