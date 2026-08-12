@@ -25,6 +25,39 @@ jobs:
         with:
           packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.1.10909125'
 
+      - name: Prepare SDL2 and Android Structure
+        run: |
+          # 1. Clona SDL2 ufficiale
+          git clone -b SDL2 --depth 1 https://github.com/libsdl-org/SDL.git sdl-source
+          
+          # 2. Crea la struttura android-project di base
+          cp -r sdl-source/android-project ./android
+
+          mkdir -p android/app/jni/SDL
+          cp -r sdl-source/include android/app/jni/SDL/
+          cp -r sdl-source/src android/app/jni/SDL/
+
+          mkdir -p android/app/jni/SDL/include/SDL2
+          cp -r sdl-source/include/* android/app/jni/SDL/include/SDL2/
+          rm -rf sdl-source
+
+          # 3. Copia i sorgenti del gioco e le dipendenze (LVGL)
+          mkdir -p android/app/jni/src
+          mkdir -p android/app/jni/include
+
+          if [ -d "src" ]; then
+            cp -r src/* android/app/jni/src/
+          fi
+          if [ -d "include" ]; then
+            cp -r include/* android/app/jni/include/
+          fi
+          if [ -d "dependencies" ]; then
+            cp -r dependencies/* android/app/jni/
+          fi
+
+          # Rimuove la cartella msinttypes di rapidjson che rompeva la compilazione
+          find android/app/jni/ -type d -name "msinttypes" -exec rm -rf {} +
+
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
