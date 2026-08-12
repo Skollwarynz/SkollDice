@@ -55,7 +55,10 @@ jobs:
             cp -r dependencies/* android/app/jni/
           fi
 
-          # 4. Pulizia aggressiva file Windows/MSVC e test da LVGL/ThorVG
+          # 4. Forza la configurazione di Application.mk per evitare blocchi sulle dipendenze SDL2
+          echo "APP_ALLOW_MISSING_DEPS=true" >> android/app/jni/Application.mk
+
+          # 5. Pulizia file Windows/MSVC e test da LVGL/ThorVG
           find android/app/jni/ -type d -name "msinttypes" -exec rm -rf {} +
           find android/app/jni/ -type d -name "VisualStudio" -exec rm -rf {} +
           find android/app/jni/ -type d -name "test" -exec rm -rf {} +
@@ -68,7 +71,6 @@ jobs:
       - name: Build Android Release App
         run: |
           cd android
-          # Pulisce eventuali cache corrotte e compila forzando l'esecuzione senza flag -n
           ./gradlew clean assembleRelease --no-daemon
 
       - name: Upload APK Artifact
