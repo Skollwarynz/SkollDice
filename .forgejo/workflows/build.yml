@@ -1,0 +1,56 @@
+name: Build App (Linux & Windows)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-linux:
+    name: Build Linux Native
+    runs-on: docker-amd64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libsdl2-dev
+
+      - name: Build Linux
+        run: |
+          mkdir build_linux && cd build_linux
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-Linux
+          path: build_linux/MiaApp
+
+  build-windows:
+    name: Cross-Compile Windows
+    runs-on: docker-amd64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
+
+      - name: Build Windows
+        run: |
+          mkdir build_win && cd build_win
+          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiaApp-Windows
+          path: build_win/MiaApp.exe
