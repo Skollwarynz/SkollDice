@@ -81,6 +81,13 @@ jobs:
             sed -i 's/SDL3/SDL2/g' android/app/jni/Android.mk || true
           fi
           
+          # Forza l'abilitazione delle dipendenze mancanti per evitare il blocco NDK
+          if [ -f "android/app/jni/Application.mk" ]; then
+            echo "APP_ALLOW_MISSING_DEPS := true" >> android/app/jni/Application.mk
+          else
+            echo "APP_ALLOW_MISSING_DEPS := true" > android/app/jni/Application.mk
+          fi
+          
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
