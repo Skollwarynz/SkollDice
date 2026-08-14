@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <string.h>
 #include "../include/globals.h"
+#include <stdlib.h>
 
 FILE* rand_reader = NULL;
 Dices types_and_number_of_dices[7] = {
@@ -18,6 +19,23 @@ lv_obj_t *text_D20;
 lv_obj_t *text_D100;
 lv_obj_t *label_output;
 lv_obj_t *screen;
+
+#if defined(__ANDROID__)
+static void textarea_event_cb(lv_event_t * e) {
+    lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t * ta = lv_event_get_target(e);
+    lv_obj_t * kb = lv_event_get_user_data(e);
+
+    if(code == LV_EVENT_FOCUSED) {
+        lv_keyboard_set_textarea(kb, ta);
+        lv_obj_set_hidden(kb, false);
+  }
+    else if(code == LV_EVENT_DEFOCUSED) {
+        lv_keyboard_set_textarea(kb, NULL);
+        lv_obj_set_hidden(kb, true);
+    }
+}
+#endif
 
 void shutdown_app(lv_event_t * e){
     lv_event_code_t code = lv_event_get_code(e);
@@ -96,21 +114,32 @@ static void calculate (lv_event_t * e)
     }
 }
 
-int main(int argc, char *argv[]){
+// ENTRY POINT SPECIFIC FOR THE PLATFORM
+#if defined(__ANDROID__)
+void android_main(struct android_app* app) {
+#else
+int main(int argc, char *argv[]) {
+#endif
+//initialization 
   lv_init();
-  lv_sdl_window_create(540, 960);
-  lv_obj_t *screen = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(screen, lv_pct(100), lv_pct(100));
-
-  lv_obj_set_style_max_width(screen, 540, LV_PART_MAIN);
-  lv_obj_set_style_max_height(screen, 960, LV_PART_MAIN);
- 
+#if defined(__ANDROID__)
+  lv_obj_t * kb = lv_keyboard_create(lv_screen_active());
+  lv_obj_set_hidden(kb, true);
+#else
   lv_group_t * g = lv_group_create();
   lv_group_set_default(g);
   lv_indev_t * wheel = lv_sdl_mousewheel_create();
   lv_indev_set_group(wheel, g);
   lv_sdl_mouse_create();
   lv_indev_t * kb_indev = lv_sdl_keyboard_create();
+  lv_sdl_window_create(540, 960);
+#endif
+  lv_obj_t *screen = lv_obj_create(lv_screen_active());
+  lv_obj_set_size(screen, lv_pct(100), lv_pct(100));
+
+  lv_obj_set_style_max_width(screen, 540, LV_PART_MAIN);
+  lv_obj_set_style_max_height(screen, 960, LV_PART_MAIN);
+
   static int32_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
   static int32_t row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
@@ -126,9 +155,15 @@ int main(int argc, char *argv[]){
   lv_textarea_set_one_line(text_D4, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D4, LV_GRID_ALIGN_STRETCH, 0, 1,
                                 LV_GRID_ALIGN_STRETCH, 0, 1);
-  lv_group_add_obj(g, text_D4);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D4, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D4);
+#endif
 // 2. Associa il gruppo di input a questo dispositivo
-  lv_indev_set_group(kb_indev, g);
+#if !defined(__ANDROID__)
+    lv_indev_set_group(kb_indev, g);
+#endif
 // 4. Metti il focus sulla textarea
   lv_group_focus_obj(text_D4);
 
@@ -137,45 +172,65 @@ int main(int argc, char *argv[]){
   lv_textarea_set_one_line(text_D6, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D6, LV_GRID_ALIGN_STRETCH, 1, 1,
                                 LV_GRID_ALIGN_STRETCH, 0, 1);
-  lv_group_add_obj(g, text_D6);
-  lv_indev_set_group(kb_indev, g);
-  lv_group_focus_obj(text_D6);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D6, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D6);
+    lv_indev_set_group(kb_indev, g);
+    lv_group_focus_obj(text_D6);
+#endif
 
   text_D8 = lv_textarea_create(grid);
   lv_textarea_set_placeholder_text(text_D8, "D8");
   lv_textarea_set_one_line(text_D8, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D8, LV_GRID_ALIGN_STRETCH, 2, 1,
                                 LV_GRID_ALIGN_STRETCH, 0, 1);
-  lv_group_add_obj(g, text_D8);
-  lv_indev_set_group(kb_indev, g);
-  lv_group_focus_obj(text_D8);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D8, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D8);
+    lv_indev_set_group(kb_indev, g);
+    lv_group_focus_obj(text_D8);
+#endif
 
   text_D10 = lv_textarea_create(grid);
   lv_textarea_set_placeholder_text(text_D10, "D10");
   lv_textarea_set_one_line(text_D10, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D10, LV_GRID_ALIGN_STRETCH, 0, 1,
                                 LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_group_add_obj(g, text_D10);
-  lv_indev_set_group(kb_indev, g);
-  lv_group_focus_obj(text_D10);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D10, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D10);
+    lv_indev_set_group(kb_indev, g);
+    lv_group_focus_obj(text_D10);
+#endif
   
   text_D12 = lv_textarea_create(grid);
   lv_textarea_set_placeholder_text(text_D12, "D12");
   lv_textarea_set_one_line(text_D12, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D12, LV_GRID_ALIGN_STRETCH, 1, 1,
                                 LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_group_add_obj(g, text_D12);
-  lv_indev_set_group(kb_indev, g);
-  lv_group_focus_obj(text_D12);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D12, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D12);
+    lv_indev_set_group(kb_indev, g);
+    lv_group_focus_obj(text_D12);
+#endif
 
   text_D20 = lv_textarea_create(grid);
   lv_textarea_set_placeholder_text(text_D20, "D20");
   lv_textarea_set_one_line(text_D20, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D20, LV_GRID_ALIGN_STRETCH, 2, 1,
                                 LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_group_add_obj(g, text_D20);
-  lv_indev_set_group(kb_indev, g);
-  lv_group_focus_obj(text_D20);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D20, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D20);
+    lv_indev_set_group(kb_indev, g);
+    lv_group_focus_obj(text_D20);
+#endif
   
   lv_obj_t * output_flex = lv_obj_create(lv_screen_active());
   lv_obj_set_size(output_flex, lv_pct(100), lv_pct(50));
@@ -187,17 +242,20 @@ int main(int argc, char *argv[]){
   lv_textarea_set_one_line(text_D100, true); // Consigliato per caselle singole
   lv_obj_set_grid_cell(text_D100, LV_GRID_ALIGN_STRETCH, 0, 1,
                                 LV_GRID_ALIGN_STRETCH, 2, 2);
-  lv_group_add_obj(g, text_D100);
-  lv_indev_set_group(kb_indev, g);
-  lv_group_focus_obj(text_D100);
+#if defined(__ANDROID__)
+    lv_obj_add_event_cb(text_D100, textarea_event_cb, LV_EVENT_ALL, kb);
+#else
+    lv_group_add_obj(g, text_D100);
+    lv_indev_set_group(kb_indev, g);
+    lv_group_focus_obj(text_D100);
+#endif
 
   lv_obj_t *button_of_shutdown = lv_button_create(output_flex);
   lv_obj_t *label_of_shutdown = lv_label_create(button_of_shutdown);
   lv_label_set_text(label_of_shutdown, "Close app");
   lv_obj_add_event_cb(button_of_shutdown, shutdown_app, LV_EVENT_ALL, NULL);
 
-  #if defined(_WIN32) || defined(_WIN64)
-  #else
+  #if !defined(_WIN32) && !defined(_WIN64)
     rand_reader = fopen("/dev/urandom", "rb");
   #endif
   
@@ -225,10 +283,16 @@ while (1) { // Meglio evitare while(1) per permettere una chiusura pulita
     if (time_till_next > 10) {
         time_till_next = 10;
     }
+#if defined(_WIN32) || defined(_WIN64)
+        Sleep(time_till_next);
+#elif defined(__ANDROID__)
+        usleep(time_till_next * 1000);
+#else
+        SDL_Delay(time_till_next);
+#endif
+    }
 
-    // SDL_Delay accetta già i millisecondi (NON moltiplicare per 1000!)
-    SDL_Delay(time_till_next);
-}
-
-  return 0;
+#if !defined(__ANDROID__)
+    return 0;
+#endif
 }

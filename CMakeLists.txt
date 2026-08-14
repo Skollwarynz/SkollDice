@@ -1,26 +1,23 @@
 cmake_minimum_required(VERSION 3.18.1)
 project(SkollDice C)
 
-# 1. Trova i file sorgente reali del tuo progetto
 set(SOURCES
     src/main.c
     src/random_dice.c
 )
 
-# 2. Includi la cartella di LVGL (se presente nelle dipendenze)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
-    add_subdirectory(dependencies/lvgl)
-endif()
-
-# 3. Configurazione dell'eseguibile/libreria
 if(ANDROID)
-    # Su Android l'entry-point DEVE essere una libreria condivisa (.so) chiamata 'main'
-    add_library(main SHARED ${SOURCES})
+    # Su Android spegniamo SDL2 per evitare che LVGL cerchi <SDL2/SDL.h>
+    set(LV_USE_SDL OFF CACHE BOOL "" FORCE)
     
-    # Macro necessaria per attivare le direttive #if defined(__ANDROID__) nel tuo codice C
+    # Integriamo LVGL
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
+        add_subdirectory(dependencies/lvgl)
+    endif()
+
+    add_library(main SHARED ${SOURCES})
     target_compile_definitions(main PRIVATE __ANDROID__)
     
-    # Cartelle degli header per Android
     target_include_directories(main PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -29,7 +26,6 @@ if(ANDROID)
         ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl
     )
 
-    # Link delle librerie native di sistema Android + LVGL
     target_link_libraries(main PRIVATE
         lvgl
         android
@@ -38,7 +34,11 @@ if(ANDROID)
         GLESv2
     )
 else()
-    # Configurazione Desktop (Linux / macOS / Windows)
+    # Desktop (Linux / macOS / Windows)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
+        add_subdirectory(dependencies/lvgl)
+    endif()
+
     add_executable(MiaApp ${SOURCES})
 
     target_include_directories(MiaApp PRIVATE

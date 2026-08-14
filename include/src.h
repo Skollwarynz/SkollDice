@@ -13,7 +13,10 @@
 #endif
 
 #include "lvgl/lvgl.h"
-#include <SDL2/SDL.h>
+#if !defined(__ANDROID__)
+  #include <SDL2/SDL.h>
+  #include <android_native_app_glue.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 
