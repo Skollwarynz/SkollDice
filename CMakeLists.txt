@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.18.1)
 project(SkollDice C)
 
-# Disabilita la compilazione di esempi e demo di LVGL per velocizzare il tutto
+# Ottimizzazioni per disabilitare moduli pesanti/inutili di LVGL
 set(LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
+set(LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
+set(LV_USE_THORVG_EXTERNAL OFF CACHE BOOL "" FORCE)
 
 set(SOURCES
     src/main.c
@@ -11,7 +13,6 @@ set(SOURCES
 )
 
 if(ANDROID)
-    # Disabilita il driver SDL di LVGL su Android
     set(LV_USE_SDL OFF CACHE BOOL "" FORCE)
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
@@ -37,8 +38,11 @@ if(ANDROID)
         GLESv2
     )
 else()
-    # CONFIGURAZIONE DESKTOP (Linux / macOS / Windows)
+    # DESKTOP (Linux / macOS / Windows)
+    find_package(SDL2 REQUIRED)
+
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
+        include_directories(${SDL2_INCLUDE_DIRS})
         add_subdirectory(dependencies/lvgl)
     endif()
 
@@ -50,22 +54,19 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
         ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl
+        ${SDL2_INCLUDE_DIRS}
     )
 
     if(WIN32)
         target_link_options(MiaApp PRIVATE -mconsole)
-        
-        find_library(SDL2_LIB NAMES SDL2)
-        find_library(SDL2MAIN_LIB NAMES SDL2main)
         target_link_libraries(MiaApp PRIVATE
             lvgl
-            ${SDL2MAIN_LIB}
-            ${SDL2_LIB}
             mingw32
+            SDL2main
+            SDL2
             m
         )
     else()
-        find_package(SDL2 REQUIRED)
         target_link_libraries(MiaApp PRIVATE
             lvgl
             ${SDL2_LIBRARIES}

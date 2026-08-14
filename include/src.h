@@ -17,11 +17,10 @@
 
 #include "lvgl/lvgl.h"
 
-#include "lvgl/lvgl.h"
-
 #if defined(__ANDROID__)
   struct android_app;
 #else
+  #define SDL_MAIN_HANDLED /* Evita che SDL2 sovrascriva il main() su Windows */
   #include <SDL2/SDL.h>
 #endif
 
