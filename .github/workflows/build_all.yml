@@ -56,8 +56,69 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build Android Shared Library via CMake & NDK
+        run: |
+          mkdir build-android && cd build-android
+          cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
+                -DANDROID_ABI=arm64-v8a \
+                -DANDROID_PLATFORM=android-24 \
+                ..
+          make
+
+      - name: Package Standalone APK
+        run: |
+          mkdir -p apk_build/lib/arm64-v8a
+          cp build-android/libmain.so apk_build/lib/arm64-v8a/
+          
+          # Generazione di un AndroidManifest temporaneo minimalista
+          cat << 'EOF' > apk_build/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.skollwarynz.skolldice">
+              <application android:label="SkollDice" android:hasCode="false">
+                  <activity android:name="android.app.NativeActivity" android:exported="true">
+                      <meta-data android:name="android.app.lib_name" android:value="main" />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # Pacchettizzazione con aapt2, zipalign e apksigner dell'SDK
+          AAPT2=$ANDROID_HOME/build-tools/34.0.0/aapt2
+          ZIPALIGN=$ANDROID_HOME/build-tools/34.0.0/zipalign
+          APKSIGNER=$ANDROID_HOME/build-tools/34.0.0/apksigner
+
+          $AAPT2 link -o unaligned.apk -I $ANDROID_HOME/platforms/android-34/android.jar \
+            --manifest apk_build/AndroidManifest.xml
+
+          cd apk_build && zip -r ../unaligned.apk lib/ && cd ..
+          $ZIPALIGN -v 4 unaligned.apk SkollDice-Android.apk
+
+          # Firma con Keystore temporaneo di debug
+          keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          $APKSIGNER sign --ks debug.keystore --ks-pass pass:android SkollDice-Android.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkollDice-Android.apk
+          path: SkollDice-Android.apk
+
   release:
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

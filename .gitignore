@@ -1,4 +1,12 @@
-
+# Android & Local Builds
+*.so
+*.o
+*.apk
+Makefile.android
+build/
+build-android/
+.gradle/
+local.properties
 build/
 build_win/
 build_linux/
