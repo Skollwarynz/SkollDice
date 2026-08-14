@@ -31,7 +31,8 @@ jobs:
       - run: |
           brew install sdl2 cmake
           mkdir build && cd build
-          cmake -DCMAKE_PREFIX_PATH="$(brew --prefix sdl2)" ..
+          # Passa il percorso esatto dell'include di SDL2 installata via Homebrew
+          cmake -DCMAKE_INCLUDE_PATH="$(brew --prefix)/include" -DCMAKE_PREFIX_PATH="$(brew --prefix sdl2)" ..
           make
           mv MiaApp ../SkollDice-macOS
       - uses: actions/upload-artifact@v4
@@ -76,7 +77,7 @@ jobs:
           cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
                 -DANDROID_ABI=arm64-v8a \
                 -DANDROID_PLATFORM=android-24 \
-                -DLV_USE_SDL=OFF \
+                -DLV_USE_SDL=0 \
                 ..
           make
 

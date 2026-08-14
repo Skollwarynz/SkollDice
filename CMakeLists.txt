@@ -6,13 +6,14 @@ set(SOURCES
     src/random_dice.c
 )
 
-# Includi LVGL
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
-    add_subdirectory(dependencies/lvgl)
-endif()
-
 if(ANDROID)
-    # CONFIGURAZIONE ANDROID
+    # Disabilita il driver SDL di LVGL su Android
+    set(LV_USE_SDL OFF CACHE BOOL "" FORCE)
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
+        add_subdirectory(dependencies/lvgl)
+    endif()
+
     add_library(main SHARED ${SOURCES})
     target_compile_definitions(main PRIVATE __ANDROID__)
     
@@ -33,6 +34,10 @@ if(ANDROID)
     )
 else()
     # CONFIGURAZIONE DESKTOP (Linux / macOS / Windows)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/CMakeLists.txt")
+        add_subdirectory(dependencies/lvgl)
+    endif()
+
     add_executable(MiaApp ${SOURCES})
 
     target_include_directories(MiaApp PRIVATE
@@ -43,9 +48,10 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl
     )
 
-    # Gestione cross-platform per trovare SDL2
     if(WIN32)
-        # Su Windows MinGW cerca le librerie copiate a mano
+        # Su Windows diciamogli di usare il classico main() anziché WinMain
+        target_link_options(MiaApp PRIVATE -mconsole)
+        
         find_library(SDL2_LIB NAMES SDL2)
         find_library(SDL2MAIN_LIB NAMES SDL2main)
         target_link_libraries(MiaApp PRIVATE
@@ -56,7 +62,6 @@ else()
             m
         )
     else()
-        # Su Linux e macOS usa il pacchetto standard
         find_package(SDL2 REQUIRED)
         target_link_libraries(MiaApp PRIVATE
             lvgl
