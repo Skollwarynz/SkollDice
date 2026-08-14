@@ -2,6 +2,9 @@
 #define SRC_H
 
 #if defined(_WIN32) || defined(_WIN64)
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
   #ifndef _WIN32_WINNT
     #define _WIN32_WINNT 0x0600
   #endif
@@ -13,10 +16,13 @@
 #endif
 
 #include "lvgl/lvgl.h"
-#if !defined(__ANDROID__)
-  #include <SDL2/SDL.h>
+
+#if defined(__ANDROID__)
   #include <android_native_app_glue.h>
+#else
+  #include <SDL2/SDL.h>
 #endif
+
 #include <stdio.h>
 #include <stdint.h>
 

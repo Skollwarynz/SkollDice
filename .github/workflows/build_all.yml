@@ -30,7 +30,9 @@ jobs:
         with: {submodules: recursive}
       - run: |
           brew install sdl2 cmake
-          mkdir build && cd build && cmake .. && make
+          mkdir build && cd build
+          cmake -DCMAKE_PREFIX_PATH="$(brew --prefix sdl2)" ..
+          make
           mv MiaApp ../SkollDice-macOS
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-macOS, path: SkollDice-macOS}
