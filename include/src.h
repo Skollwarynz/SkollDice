@@ -17,8 +17,10 @@
 
 #include "lvgl/lvgl.h"
 
+#include "lvgl/lvgl.h"
+
 #if defined(__ANDROID__)
-  #include <android_native_app_glue.h>
+  struct android_app;
 #else
   #include <SDL2/SDL.h>
 #endif

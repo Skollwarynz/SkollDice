@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.18.1)
 project(SkollDice C)
 
+# Disabilita la compilazione di esempi e demo di LVGL per velocizzare il tutto
+set(LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
+
 set(SOURCES
     src/main.c
     src/random_dice.c
@@ -49,7 +53,6 @@ else()
     )
 
     if(WIN32)
-        # Su Windows diciamogli di usare il classico main() anziché WinMain
         target_link_options(MiaApp PRIVATE -mconsole)
         
         find_library(SDL2_LIB NAMES SDL2)

@@ -1699,7 +1699,14 @@
 #endif /*LV_USE_QNX*/
 
 /** Open a window on a PC desktop with SDL2 and read mouse and keyboard input. */
-#define LV_USE_SDL 1
+/* Supporto SDL2: disabilitato automaticamente su Android o se non siamo su PC */
+#if defined(__ANDROID__)
+    #define LV_USE_SDL 0
+#else
+    #ifndef LV_USE_SDL
+        #define LV_USE_SDL 1
+    #endif
+#endif
 
 #if LV_USE_SDL
 /** SDL include path */
@@ -2383,7 +2390,7 @@
  *============================================================================*/
 
 /** Build examples */
-#define LV_BUILD_EXAMPLES 1
+#define LV_BUILD_EXAMPLES 0
 
 
 
