@@ -50,13 +50,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
           
+          # Scarichiamo il pacchetto sviluppatori SDL2 per MinGW
           curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
           tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
+          
+          # Copiamo gli header e le librerie nei path di MinGW
           sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
           sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
           
+          # Copiamo i file di configurazione cmake per far funzionare find_package(SDL2)
+          sudo mkdir -p /usr/x86_64-w64-mingw32/lib/cmake/SDL2
+          sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/lib/cmake/SDL2/* /usr/x86_64-w64-mingw32/lib/cmake/SDL2/
+          
           mkdir build && cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
+          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake \
+                -DSDL2_DIR=/usr/x86_64-w64-mingw32/lib/cmake/SDL2 \
+                ..
           make -j$(nproc)
           mv MiaApp.exe ../SkollDice-Windows.exe
       - uses: actions/upload-artifact@v4
