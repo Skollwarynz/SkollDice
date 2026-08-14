@@ -18,7 +18,7 @@ jobs:
         with: {submodules: recursive}
       - run: |
           sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
-          mkdir build && cd build && cmake .. && make
+          mkdir build && cd build && cmake .. && make -j$(nproc)
           mv MiaApp ../SkollDice-Linux
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-Linux, path: SkollDice-Linux}
@@ -31,13 +31,12 @@ jobs:
       - run: |
           brew install sdl2 cmake
           mkdir build && cd build
-          # Passiamo esplicitamente le directory di include e libreria di SDL2 trovate da brew
           SDL2_DIR=$(brew --prefix sdl2)
           cmake -DSDL2_DIR=$SDL2_DIR \
                 -DCMAKE_PREFIX_PATH=$SDL2_DIR \
                 -DCMAKE_C_FLAGS="-I$SDL2_DIR/include" \
                 ..
-          make
+          make -j$(sysctl -n hw.ncpu)
           mv MiaApp ../SkollDice-macOS
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-macOS, path: SkollDice-macOS}
@@ -58,7 +57,7 @@ jobs:
           
           mkdir build && cd build
           cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
-          make
+          make -j$(nproc)
           mv MiaApp.exe ../SkollDice-Windows.exe
       - uses: actions/upload-artifact@v4
         with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
@@ -83,7 +82,7 @@ jobs:
                 -DANDROID_PLATFORM=android-24 \
                 -DLV_USE_SDL=OFF \
                 ..
-          make
+          make -j$(nproc)
 
       - name: Package Standalone APK
         run: |
