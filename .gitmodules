@@ -1,3 +1,6 @@
 [submodule "dependencies/lvgl"]
 	path = dependencies/lvgl
 	url = https://github.com/lvgl/lvgl.git
+[submodule "SkollDice_bot/lib/concord"]
+	path = SkollDice_bot/lib/concord
+	url = https://github.com/Cogmasters/concord.git

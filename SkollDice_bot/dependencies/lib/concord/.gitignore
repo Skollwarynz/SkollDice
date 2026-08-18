@@ -1,0 +1,31 @@
+# Ignore all
+*
+# But these
+!AUTHORS
+!.vscode
+!core/
+!core/*.c
+!core/*.h
+!docs
+!docs/*
+!doxygen-awesome-css
+!examples
+!gencodecs
+!include
+!include/*.h
+!lib
+!lib/.gitkeep
+!licenses
+!scripts
+!src
+!src/*.c
+!templates
+!test
+!.clang-format
+!.git*
+!Doxyfile
+!*.md
+!LICENSE
+!Makefile
+!config.json
+!.github/**

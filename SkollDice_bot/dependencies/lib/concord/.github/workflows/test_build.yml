@@ -1,0 +1,39 @@
+name: test build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Dependencies
+        run: |
+          echo "Installing libcurl"
+          sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+
+      - name: Run Makefile
+        run: |
+          echo "Building"
+          make all
+          echo "Building examples"
+          make examples
+          echo "Building tests"
+          make test
+          echo "Building voice"
+          make clean && make voice
+
+      - name: Run Makefile with parallelism
+        run: |
+          echo "Building with parallelism"
+          make clean && make all -j$(nproc)
+          echo "Building examples with parallelism"
+          make clean && make examples -j$(nproc)
+          echo "Building tests with parallelism"
+          make clean && make test -j$(nproc)
+          echo "Building voice with parallelism"
+          make clean && make voice -j$(nproc)
