@@ -154,11 +154,13 @@ void parse_and_calculate(char** request, struct discord *client, const struct di
          capacity += 256;
       } else if(index_response >= MAX_MESSAGE) {
           struct discord_create_message params = { .content = response };
-          CCORDcode code = discord_create_message(client, event->channel_id, &params, NULL);
-          if (code != CCORD_OK){ //Error handling 
-            discord_strerror(code, client);
-             return;
-          }
+          discord_create_message(client, event->channel_id, &params, NULL);
+          //This error handlig bloks the program because of the logic behind 
+          //how the error is produced 
+          // if (code != CCORD_OK){ //Error handling 
+          //   discord_strerror(code, client);
+          //    return;
+          // }
           response[0] = '\0';
           index_response = 0;
       }
@@ -262,24 +264,34 @@ void on_ready(struct discord *client, const struct discord_ready *event) {
     discord_create_global_application_command(client, event->user->id, &roll_cmd, NULL);
 }
 
-int main(){
-  rand_reader = fopen("/dev/urandom", "rb");
-  const char *token = getenv("DISCORD_TOKEN");
-  if (!token) {
-      perror("Not a valid token");
-      return 1;
-  }
+int main() {
+    rand_reader = fopen("/dev/urandom", "rb");
 
+    const char *token = getenv("DISCORD_TOKEN");
+    if (!token) {
+        perror("Not a valid token");
+        if (rand_reader) fclose(rand_reader);
+        return 1;
+    }
 
-  struct discord *client = discord_init(token);
-  
-  discord_add_intents(client, DISCORD_GATEWAY_MESSAGE_CONTENT);
+    // Starting bot with Concord and token
+    struct discord *client = discord_init(token);
+    if (!client) {
+        fprintf(stderr, "Errore durante l'inizializzazione del client.\n");
+        if (rand_reader) fclose(rand_reader);
+        return 1;
+    }
 
-  discord_set_on_message_create(client, &message_receiver); 
+    discord_add_intents(client, DISCORD_GATEWAY_MESSAGE_CONTENT);
 
-  discord_set_on_ready(client, &on_ready);
-  discord_set_on_interaction_create(client, &on_interaction);
-  discord_run(client);
+    discord_set_on_message_create(client, &message_receiver); 
+    discord_set_on_ready(client, &on_ready);
+    discord_set_on_interaction_create(client, &on_interaction);
 
-  discord_cleanup(client);
+    discord_run(client);
+
+    discord_cleanup(client);
+    if (rand_reader) fclose(rand_reader);
+
+    return 0;
 }

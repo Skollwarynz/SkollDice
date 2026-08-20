@@ -2,6 +2,8 @@
 *.so
 *.o
 *.apk
+*.env
+bot 
 Makefile.android
 build/
 build-android/
@@ -10,6 +12,7 @@ local.properties
 build/
 build_win/
 build_linux/
+
 
 build/
 build_linux/

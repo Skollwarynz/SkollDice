@@ -1,8 +1,6 @@
 name: Build and Release All
 
 on:
-  push:
-    branches: [ "main", "master" ]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -16,148 +14,106 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {submodules: recursive}
-      - run: |
-          sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
-          mkdir build && cd build && cmake .. && make -j$(nproc)
-          mv MiaApp ../SkollDice-Linux
+      
+      - name: Install Dependencies & Build
+        run: |
+          sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev wget
+          mkdir build && cd build
+          cmake .. -DLINUX_APPIMAGE=ON
+          make -j$(nproc)
+          
+          # Prepariamo la struttura AppDir per l'AppImage
+          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
+          
+          # Copia dell'eseguibile
+          cp SkollDice_bin-linux AppDir/usr/bin/SkollDice
+          
+          # Copia dell'icona e creazione file .desktop per Linuxdeploy
+          cp ../SkollDice/Assets/SkollDice_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/SkollDice.png
+          
+          cat << EOF > AppDir/usr/share/applications/SkollDice.desktop
+          [Desktop Entry]
+          Name=SkollDice
+          Exec=SkollDice
+          Icon=SkollDice
+          Type=Application
+          Categories=Game;
+          EOF
+
+          # Generazione AppImage tramite linuxdeploy
+          wget -O linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy
+          ./linuxdeploy --appdir=AppDir --icon-file=../SkollDice/Assets/SkollDice_icon.png --desktop-file=AppDir/usr/share/applications/SkollDice.desktop --output appimage
+          
+          mv SkollDice-*.AppImage ../SkollDice-linux.AppImage
+
       - uses: actions/upload-artifact@v4
-        with: {name: SkollDice-Linux, path: SkollDice-Linux}
+        with:
+          name: SkollDice-Linux
+          path: SkollDice-linux.AppImage
 
   build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with: {submodules: recursive}
-      - run: |
+      
+      - name: Build macOS
+        run: |
           brew install sdl2 cmake
           mkdir build && cd build
-          SDL2_DIR=$(brew --prefix sdl2)
-          cmake -DSDL2_DIR=$SDL2_DIR \
-                -DCMAKE_PREFIX_PATH=$SDL2_DIR \
-                -DCMAKE_C_FLAGS="-I$SDL2_DIR/include" \
-                ..
-          make -j$(sysctl -n hw.ncpu)
-          mv MiaApp ../SkollDice-macOS
+          cmake ..
+          make -j$(nproc)
+          mv SkollDice_bin ../SkollDice-macOS
+
       - uses: actions/upload-artifact@v4
-        with: {name: SkollDice-macOS, path: SkollDice-macOS}
+        with:
+          name: SkollDice-macOS
+          path: SkollDice-macOS
 
   build-windows:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: {submodules: recursive}
-      - run: |
+      
+      - name: Build Windows
+        run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
-          
-          # Scarichiamo il pacchetto sviluppatori SDL2 per MinGW
+                    
           curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
           tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
-          
-          # Copiamo gli header e le librerie nei path di MinGW
           sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
           sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
-          
-          # Copiamo i file di configurazione cmake per far funzionare find_package(SDL2)
-          sudo mkdir -p /usr/x86_64-w64-mingw32/lib/cmake/SDL2
-          sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/lib/cmake/SDL2/* /usr/x86_64-w64-mingw32/lib/cmake/SDL2/
-          
+                    
           mkdir build && cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake \
-                -DSDL2_DIR=/usr/x86_64-w64-mingw32/lib/cmake/SDL2 \
-                ..
+          cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
           make -j$(nproc)
-          mv MiaApp.exe ../SkollDice-Windows.exe
-      - uses: actions/upload-artifact@v4
-        with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
-
-  build-android:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {submodules: recursive}
-      
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Build Android Shared Library via CMake & NDK
-        run: |
-          mkdir build-android && cd build-android
-          cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
-                -DANDROID_ABI=arm64-v8a \
-                -DANDROID_PLATFORM=android-24 \
-                -DLV_USE_SDL=OFF \
-                ..
-          make -j$(nproc)
-
-      - name: Package Standalone APK
-        run: |
-          mkdir -p apk_build/lib/arm64-v8a
-          cp build-android/libmain.so apk_build/lib/arm64-v8a/
-          
-          cat << 'EOF' > apk_build/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.skollwarynz.skolldice">
-              <application android:label="SkollDice" android:hasCode="false">
-                  <activity android:name="android.app.NativeActivity" android:exported="true">
-                      <meta-data android:name="android.app.lib_name" android:value="main" />
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          AAPT2=$ANDROID_HOME/build-tools/34.0.0/aapt2
-          ZIPALIGN=$ANDROID_HOME/build-tools/34.0.0/zipalign
-          APKSIGNER=$ANDROID_HOME/build-tools/34.0.0/apksigner
-
-          $AAPT2 link -o unaligned.apk -I $ANDROID_HOME/platforms/android-34/android.jar \
-            --manifest apk_build/AndroidManifest.xml
-
-          cd apk_build && zip -r ../unaligned.apk lib/ && cd ..
-          $ZIPALIGN -v 4 unaligned.apk SkollDice-Android.apk
-
-          keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          $APKSIGNER sign --ks debug.keystore --ks-pass pass:android SkollDice-Android.apk
+          mv SkollDice_bin.exe ../SkollDice-Windows.exe
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SkollDice-Android.apk
-          path: SkollDice-Android.apk
+          name: SkollDice-Windows
+          path: SkollDice-Windows.exe
 
   release:
-    needs: [build-linux, build-macos, build-windows, build-android]
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/download-artifact@v4
         with: {path: artifacts}
-      
+            
       - name: Release to GitHub
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       - name: Upload to Codeberg
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG=${GITHUB_REF#refs/tags/}
-          curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases" \
-            -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"tag_name\": \"$TAG\", \"name\": \"Release $TAG\"}"
-          
-          ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG" \
-            -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" | jq .id)
-          
-          for f in artifacts/**/*; do
-            curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/$ID/assets" \
-              -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
-              -F "attachment=@$f"
-          done
+          echo "Uploading to Codeberg..."
