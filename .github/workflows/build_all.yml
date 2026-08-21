@@ -1,120 +1,33 @@
-name: Build and Release All
+name: Linux Build
 
-on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-
-permissions:
-  contents: write
+on: [push]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with: {submodules: recursive}
-      
-      - name: Install Dependencies & Build
+      - uses: actions/checkout@v3
+
+      - name: Fix Apt & Install Dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev wget
-          mkdir build && cd build
-          cmake .. -DLINUX_APPIMAGE=ON
-          make -j$(nproc)
+          # A volte act ha problemi con le chiavi temporali di apt, forziamo la pulizia
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get clean
           
-          # Prepariamo la struttura AppDir per l'AppImage
-          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
-          
-          # SOSTITUISCI 'SkollDice_AppImage' con il nome esatto del tuo eseguibile generato da CMake se diverso
-          cp SkollDice_AppImage AppDir/usr/bin/SkollDice
-          
-          # Copia dell'icona
-          cp SkollDice/Assets/SkollDice_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/SkollDice.png
-          
-          cat << EOF > AppDir/usr/share/applications/SkollDice.desktop
-          [Desktop Entry]
-          Name=SkollDice
-          Exec=SkollDice
-          Icon=SkollDice
-          Type=Application
-          Categories=Game;
-          EOF
+          # Installiamo le dipendenze essenziali
+          sudo apt-get update -o Acquire::Check-Valid-Until=false || true
+          sudo apt-get install -y cmake build-essential libyaml-cpp-dev
 
-          # Generazione AppImage tramite linuxdeploy
-          wget -O linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy
-          ./linuxdeploy --appdir=AppDir --icon-file=SkollDice/Assets/SkollDice_icon.png --desktop-file=AppDir/usr/share/applications/SkollDice.desktop --output appimage
-          
-          mv SkollDice-*.AppImage ../SkollDice-linux.AppImage
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-Linux
-          path: SkollDice-linux.AppImage
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {submodules: recursive}
-      
-      - name: Build macOS
+      - name: Build
         run: |
-          brew install sdl2 cmake
-          mkdir build && cd build
+          mkdir build
+          cd build
           cmake ..
-          make -j$(nproc)
-          mv SkollDice_AppImage ../SkollDice-macOS
+          make
+          make install DESTDIR=AppDir
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-macOS
-          path: SkollDice-macOS
-
-  build-windows:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {submodules: recursive}
-      
-      - name: Build Windows
+      - name: Create AppImage
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev wget
-                
-          wget -O SDL2-devel-2.30.0-mingw.tar.gz https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
-          tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
-          sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
-          sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
-                
-          mkdir build && cd build
-          cmake -DCMAKE_SYSTEM_NAME=Windows \
-                -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
-                -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ ..
-          make -j$(nproc)
-          
-          # Copia anche la SDL2.dll accanto all'eseguibile Windows affinché funzioni out-of-the-box
-          cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
-          mv SkollDice_AppImage.exe ../SkollDice-Windows.exe
-          # Nota: se vuoi includere anche la DLL nello zip o caricarla, puoi gestirla qui. Per ora caricheremo l'exe.
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SkollDice-Windows
-          path: SkollDice-Windows.exe
-
-  release:
-    needs: [build-linux, build-macos, build-windows]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: {path: artifacts}
-            
-      - name: Release to GitHub
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          files: artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir -o appimage
