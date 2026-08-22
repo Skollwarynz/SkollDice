@@ -4,3 +4,9 @@
 [submodule "SkollDice_bot/lib/concord"]
 	path = SkollDice_bot/lib/concord
 	url = https://github.com/Cogmasters/concord.git
+[submodule "SkollDice_Dekstop/dependencies/lvgl"]
+	path = SkollDice_Dekstop/dependencies/lvgl
+	url = https://github.com/lvgl/lvgl.git
+[submodule "SkollDice_bot/dependencies/lib"]
+	path = SkollDice_bot/dependencies/lib
+	url = https://github.com/Cogmasters/concord.git
