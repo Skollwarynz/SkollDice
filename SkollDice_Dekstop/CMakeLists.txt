@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(MiaApp C)
+project(SkollDice_bin C)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -16,17 +16,25 @@ include_directories(
     dependencies/lvgl/src
 )
 
-# Usa CMAKE_CURRENT_SOURCE_DIR per trovare i file in modo assoluto e sicuro
-file(GLOB APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
-file(GLOB_RECURSE LVGL_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/src/*.c")
+file(GLOB APP_SRCS "src/*.c")
+file(GLOB_RECURSE LVGL_SRCS "dependencies/lvgl/src/*.c")
 
-# Unisci le liste
+if(NOT APP_SRCS)
+    file(GLOB APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+endif()
+
+if(NOT LVGL_SRCS)
+    file(GLOB_RECURSE LVGL_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/src/*.c")
+endif()
+
 set(SRCS ${APP_SRCS} ${LVGL_SRCS})
 
-add_executable(MiaApp ${SRCS})
+message(STATUS "Trovati sorgenti app: ${APP_SRCS}")
+
+add_executable(SkollDice_bin ${SRCS})
 
 if(WIN32)
-    target_link_libraries(MiaApp PRIVATE 
+    target_link_libraries(SkollDice_bin PRIVATE 
         mingw32 
         SDL2main 
         SDL2 
@@ -37,9 +45,9 @@ if(WIN32)
         version 
         setupapi
     )
-    target_link_options(MiaApp PRIVATE -mwindows)
+    target_link_options(SkollDice_bin PRIVATE -mwindows)
 else()
     find_package(SDL2 REQUIRED)
     include_directories(${SDL2_INCLUDE_DIRS})
-    target_link_libraries(MiaApp PRIVATE ${SDL2_LIBRARIES} m)
+    target_link_libraries(SkollDice_bin PRIVATE ${SDL2_LIBRARIES} m)
 endif()
