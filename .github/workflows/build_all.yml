@@ -47,17 +47,18 @@ jobs:
           with: {name: SkollDice-Linux.AppImage, path: SkollDice-Linux.AppImage}
 
   build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {submodules: recursive}
-      - run: |
-          brew install sdl2 cmake
-          cd SkollDice_Dekstop
-          mkdir build && cd build && cmake .. && make
-          mv MiaApp ../../SkollDice-macOS
-      - uses: actions/upload-artifact@v4
-        with: {name: SkollDice-macOS, path: SkollDice-macOS}
+      runs-on: macos-latest
+      steps:
+        - uses: actions/checkout@v4
+          with: {submodules: recursive}
+        - run: |
+            brew install sdl2 cmake
+            cd SkollDice_Dekstop
+            mkdir build && cd build && cmake .. && make
+            # CORRETTO: usa SkollDice_bin
+            mv SkollDice_bin ../../SkollDice-macOS
+        - uses: actions/upload-artifact@v4
+          with: {name: SkollDice-macOS, path: SkollDice-macOS}
 
   build-windows:
       runs-on: ubuntu-latest
@@ -73,7 +74,6 @@ jobs:
             sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
             sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
             
-            # Crea il file di toolchain al volo se non esiste
             mkdir -p cmake
             echo "set(CMAKE_SYSTEM_NAME Windows)" > cmake/win_toolchain.cmake
             echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> cmake/win_toolchain.cmake
@@ -85,10 +85,10 @@ jobs:
             
             cd SkollDice_Dekstop
             mkdir build && cd build
-            # Ora il toolchain esiste nella cartella cmake creata sopra (risalendo di un livello)
-            cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
+            cmake -DCMAKE_TOOLCHAIN_FILE=../../cmake/win_toolchain.cmake ..
             make
-            mv MiaApp.exe ../../../SkollDice-Windows.exe
+            # CORRETTO: usa SkollDice_bin.exe
+            mv SkollDice_bin.exe ../../../SkollDice-Windows.exe
         - uses: actions/upload-artifact@v4
           with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
