@@ -1,33 +1,126 @@
-name: Linux Build
+name: Build and Release All
 
-on: [push]
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Fix Apt & Install Dependencies
-        run: |
-          # A volte act ha problemi con le chiavi temporali di apt, forziamo la pulizia
-          sudo rm -rf /var/lib/apt/lists/*
-          sudo apt-get clean
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
+          cd SkollDice_Dekstop
+          mkdir build && cd build && cmake .. && make
           
-          # Installiamo le dipendenze essenziali
-          sudo apt-get update -o Acquire::Check-Valid-Until=false || true
-          sudo apt-get install -y cmake build-essential libyaml-cpp-dev
-
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
-          make install DESTDIR=AppDir
-
-      - name: Create AppImage
-        run: |
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          # Setup AppImage structure
+          mkdir -p AppDir/usr/bin
+          cp MiaApp AppDir/usr/bin/
+          
+          # Create a .desktop file
+          echo -e "[Desktop Entry]\nName=SkollDice\nExec=MiaApp\nIcon=SkollDice_icon\nType=Application\nCategories=Game;" > skolldice.desktop
+          
+          # Setup Icon structure
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps/
+          cp ../assets/SkollDice_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/SkollDice_icon.png
+          
+          # Download linuxdeploy
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir -o appimage
+          
+          # Extract linuxdeploy to bypass FUSE
+          ./linuxdeploy-x86_64.AppImage --appimage-extract
+          
+          # Create AppImage
+          ./squashfs-root/AppRun --appdir AppDir -d skolldice.desktop --output appimage
+          
+          mv SkollDice*x86_64.AppImage ../../SkollDice-Linux.AppImage
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Linux.AppImage, path: SkollDice-Linux.AppImage}
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          brew install sdl2 cmake
+          cd SkollDice_Dekstop
+          mkdir build && cd build && cmake .. && make
+          mv MiaApp ../../SkollDice-macOS
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-macOS, path: SkollDice-macOS}
+
+  build-windows:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+          with: {submodules: recursive}
+        - run: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+            
+            curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
+            tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
+            sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
+            sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
+            
+            # Crea il file di toolchain al volo se non esiste
+            mkdir -p cmake
+            echo "set(CMAKE_SYSTEM_NAME Windows)" > cmake/win_toolchain.cmake
+            echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> cmake/win_toolchain.cmake
+            echo "set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)" >> cmake/win_toolchain.cmake
+            echo "set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)" >> cmake/win_toolchain.cmake
+            echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> cmake/win_toolchain.cmake
+            echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> cmake/win_toolchain.cmake
+            echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> cmake/win_toolchain.cmake
+            
+            cd SkollDice_Dekstop
+            mkdir build && cd build
+            # Ora il toolchain esiste nella cartella cmake creata sopra (risalendo di un livello)
+            cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/win_toolchain.cmake ..
+            make
+            mv MiaApp.exe ../../../SkollDice-Windows.exe
+        - uses: actions/upload-artifact@v4
+          with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
+
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: artifacts}
+      
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to Codeberg
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases" \
+            -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\": \"$TAG\", \"name\": \"Release $TAG\"}"
+          
+          ID=$(curl -s "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/tags/$TAG" \
+            -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" | jq .id)
+          
+          for f in artifacts/**/*; do
+            curl -X POST "https://codeberg.org/api/v1/repos/Skollwarynz/SkollDice/releases/$ID/assets" \
+              -H "Authorization: token ${{ secrets.CODEBERG_TOKEN }}" \
+              -F "attachment=@$f"
+          done
