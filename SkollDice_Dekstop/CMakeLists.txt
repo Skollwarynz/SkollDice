@@ -16,11 +16,9 @@ include_directories(
     dependencies/lvgl/src
 )
 
-# 1. Sorgenti della tua applicazione
-file(GLOB APP_SRCS "src/*.c")
-
-# 2. Sorgenti di LVGL
-file(GLOB_RECURSE LVGL_SRCS "dependencies/lvgl/src/*.c")
+# Usa CMAKE_CURRENT_SOURCE_DIR per trovare i file in modo assoluto e sicuro
+file(GLOB APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+file(GLOB_RECURSE LVGL_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lvgl/src/*.c")
 
 # Unisci le liste
 set(SRCS ${APP_SRCS} ${LVGL_SRCS})
