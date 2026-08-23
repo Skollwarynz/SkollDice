@@ -1,27 +1,14 @@
-# Android & Local Builds
-*.so
+build/
+bin/
+obj/
 *.o
+*.so
+*.a
+*.dylib
+*.exe
 *.apk
-*.env
-bot 
-Makefile.android
-build/
-build-android/
-.gradle/
-local.properties
-build/
-build_win/
-build_linux/
+
+.env
 .secret
+.secrets
 
-build/
-build_linux/
-build_win/
-build_mac/
-
-build/
-build_linux/
-build_win/
-build_mac/
-CMakeCache.txt
-CMakeFiles/
