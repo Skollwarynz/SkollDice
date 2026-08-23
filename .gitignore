@@ -12,7 +12,7 @@ local.properties
 build/
 build_win/
 build_linux/
-
+.secret
 
 build/
 build_linux/
