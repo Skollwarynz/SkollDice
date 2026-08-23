@@ -17,10 +17,14 @@ jobs:
       - uses: actions/checkout@v4
         with: 
           submodules: recursive
-      - name: Force initialize all submodules
+          fetch-depth: 0
+      - name: Initialize submodules correctly
         run: |
-          git submodule sync --recursive
           git submodule update --init --recursive
+          if [ -d "SkollDice_Dekstop" ]; then
+            cd SkollDice_Dekstop
+            git submodule update --init --recursive
+          fi
       - run: |
           sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
           cd SkollDice_Dekstop
@@ -59,10 +63,14 @@ jobs:
       - uses: actions/checkout@v4
         with: 
           submodules: recursive
-      - name: Force initialize all submodules
+          fetch-depth: 0
+      - name: Initialize submodules correctly
         run: |
-          git submodule sync --recursive
           git submodule update --init --recursive
+          if [ -d "SkollDice_Dekstop" ]; then
+            cd SkollDice_Dekstop
+            git submodule update --init --recursive
+          fi
       - run: |
           brew install sdl2 cmake
           cd SkollDice_Dekstop
@@ -79,10 +87,14 @@ jobs:
       - uses: actions/checkout@v4
         with: 
           submodules: recursive
-      - name: Force initialize all submodules
+          fetch-depth: 0
+      - name: Initialize submodules correctly
         run: |
-          git submodule sync --recursive
           git submodule update --init --recursive
+          if [ -d "SkollDice_Dekstop" ]; then
+            cd SkollDice_Dekstop
+            git submodule update --init --recursive
+          fi
       - run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
@@ -118,7 +130,6 @@ jobs:
       - uses: actions/checkout@v4
         with: {submodules: recursive}
 
-      # Scarica tutti gli artefatti prodotti dai job di build nella cartella "artifacts"
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
