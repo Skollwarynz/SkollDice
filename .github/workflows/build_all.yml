@@ -12,87 +12,93 @@ permissions:
 
 jobs:
   build-linux:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-          with: {submodules: recursive}
-        - run: |
-            sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
-            cd SkollDice_Dekstop
-            mkdir build && cd build && cmake .. && make
-            
-            # Setup AppImage structure using SkollDice_bin
-            mkdir -p AppDir/usr/bin
-            cp SkollDice_bin AppDir/usr/bin/
-            
-            # Create a .desktop file referencing SkollDice_bin
-            echo -e "[Desktop Entry]\nName=SkollDice\nExec=SkollDice_bin\nIcon=SkollDice_icon\nType=Application\nCategories=Game;" > skolldice.desktop
-            
-            # Setup Icon structure
-            mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps/
-            cp ../assets/SkollDice_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/SkollDice_icon.png
-            
-            # Download linuxdeploy
-            wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-            chmod +x linuxdeploy-x86_64.AppImage
-            
-            # Extract linuxdeploy to bypass FUSE
-            ./linuxdeploy-x86_64.AppImage --appimage-extract
-            
-            # Create AppImage
-            ./squashfs-root/AppRun --appdir AppDir -d skolldice.desktop --output appimage
-            
-            mv SkollDice*x86_64.AppImage ../../SkollDice-Linux.AppImage
-        - uses: actions/upload-artifact@v4
-          with: {name: SkollDice-Linux.AppImage, path: SkollDice-Linux.AppImage}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - name: Inizializza Submodule
+        run: git submodule update --init --recursive
+      - run: |
+          sudo apt-get update && sudo apt-get install -y build-essential cmake libsdl2-dev
+          cd SkollDice_Dekstop
+          mkdir build && cd build && cmake .. && make
+          
+          # Setup AppImage structure using SkollDice_bin
+          mkdir -p AppDir/usr/bin
+          cp SkollDice_bin AppDir/usr/bin/
+          
+          # Create a .desktop file referencing SkollDice_bin
+          echo -e "[Desktop Entry]\nName=SkollDice\nExec=SkollDice_bin\nIcon=SkollDice_icon\nType=Application\nCategories=Game;" > skolldice.desktop
+          
+          # Setup Icon structure
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps/
+          cp ../assets/SkollDice_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/SkollDice_icon.png
+          
+          # Download linuxdeploy
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          
+          # Extract linuxdeploy to bypass FUSE
+          ./linuxdeploy-x86_64.AppImage --appimage-extract
+          
+          # Create AppImage
+          ./squashfs-root/AppRun --appdir AppDir -d skolldice.desktop --output appimage
+          
+          mv SkollDice*x86_64.AppImage ../../SkollDice-Linux.AppImage
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Linux.AppImage, path: SkollDice-Linux.AppImage}
 
   build-macos:
-      runs-on: macos-latest
-      steps:
-        - uses: actions/checkout@v4
-          with: {submodules: recursive}
-        - run: |
-            brew install sdl2 cmake
-            cd SkollDice_Dekstop
-            mkdir build && cd build && cmake .. && make
-            # CORRETTO: usa SkollDice_bin
-            mv SkollDice_bin ../../SkollDice-macOS
-        - uses: actions/upload-artifact@v4
-          with: {name: SkollDice-macOS, path: SkollDice-macOS}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - name: Inizializza Submodule
+        run: git submodule update --init --recursive
+      - run: |
+          brew install sdl2 cmake
+          cd SkollDice_Dekstop
+          mkdir build && cd build && cmake .. && make
+          # CORRETTO: usa SkollDice_bin
+          mv SkollDice_bin ../../SkollDice-macOS
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-macOS, path: SkollDice-macOS}
 
   build-windows:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-            with: {submodules: recursive}
-          - run: |
-              sudo apt-get update
-              sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
-              
-              curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
-              tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
-              sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
-              sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
-              
-              mkdir -p cmake
-              echo "set(CMAKE_SYSTEM_NAME Windows)" > cmake/win_toolchain.cmake
-              echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> cmake/win_toolchain.cmake
-              echo "set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)" >> cmake/win_toolchain.cmake
-              echo "set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)" >> cmake/win_toolchain.cmake
-              echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> cmake/win_toolchain.cmake
-              echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> cmake/win_toolchain.cmake
-              echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> cmake/win_toolchain.cmake
-              
-              cd SkollDice_Dekstop
-              mkdir build && cd build
-              cmake -DCMAKE_TOOLCHAIN_FILE=../../cmake/win_toolchain.cmake ..
-              make
-              # CORRETTO: usa ../../ invece di ../../../
-              mv SkollDice_bin.exe ../../SkollDice-Windows.exe
-          - uses: actions/upload-artifact@v4
-            with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - name: Inizializza Submodule
+        run: git submodule update --init --recursive
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+          
+          curl -O https://www.libsdl.org/release/SDL2-devel-2.30.0-mingw.tar.gz
+          tar -xzf SDL2-devel-2.30.0-mingw.tar.gz
+          sudo cp -r SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2 /usr/x86_64-w64-mingw32/include/
+          sudo cp SDL2-2.30.0/x86_64-w64-mingw32/lib/*.a /usr/x86_64-w64-mingw32/lib/
+          
+          mkdir -p cmake
+          echo "set(CMAKE_SYSTEM_NAME Windows)" > cmake/win_toolchain.cmake
+          echo "set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)" >> cmake/win_toolchain.cmake
+          echo "set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)" >> cmake/win_toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)" >> cmake/win_toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> cmake/win_toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> cmake/win_toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> cmake/win_toolchain.cmake
+          
+          cd SkollDice_Dekstop
+          mkdir build && cd build
+          cmake -DCMAKE_TOOLCHAIN_FILE=../../cmake/win_toolchain.cmake ..
+          make
+          # CORRETTO: usa ../../ invece di ../../../
+          mv SkollDice_bin.exe ../../SkollDice-Windows.exe
+      - uses: actions/upload-artifact@v4
+        with: {name: SkollDice-Windows.exe, path: SkollDice-Windows.exe}
 
-release:
+  release:
     needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
