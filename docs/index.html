@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkollDice - Truly Random Dice Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161a22;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --badge-bg: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        code, pre {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Header / Navbar */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(15, 17, 21, 0.85);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 1rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-brand span {
+            color: var(--accent-blue);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.25rem;
+            font-size: 0.9rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-blue);
+        }
+
+        /* Main Container */
+        .container {
+            width: 92%;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 4rem 1rem;
+            flex: 1;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .badges {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge {
+            background-color: var(--badge-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 1.2rem;
+            line-height: 1.2;
+        }
+
+        h1 span {
+            color: var(--accent-blue);
+        }
+
+        .hero-desc {
+            font-size: 1.35rem;
+            color: var(--text-muted);
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        /* Story / Philosophy Cards Layout */
+        .story-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .story-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2.5rem;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .story-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .story-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .story-card p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            margin-bottom: 1.1rem;
+        }
+
+        .story-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        .story-card a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .story-card a:hover {
+            text-decoration: underline;
+        }
+
+        /* Navigation Arrows Hub */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.35rem 1.6rem;
+            text-decoration: none;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .nav-card span {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-main);
+        }
+
+        .nav-card .arrow {
+            color: var(--accent-blue);
+            font-family: 'JetBrains Mono', monospace;
+            transition: transform 0.2s;
+        }
+
+        .nav-card:hover .arrow {
+            transform: translateX(4px);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            background-color: var(--card-bg);
+        }
+
+        footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            .container { width: 95%; padding: 2rem 0.5rem; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="nav-brand"><span>Skoll</span>Dice</a>
+        <div class="nav-links">
+            <a href="contribution.html">Contribution & Design</a>
+            <a href="downloads.html">Desktop App & Binaries</a>
+            <a href="bot.html">Discord Bot Setup</a>
+            <a href="proof.html">Proof of Functioning</a>
+            <a href="bugs.html">Bugs & Issues</a>
+            <a href="https://codeberg.org/Skollwarynz" target="_blank">Repository (Codeberg) ↗</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero">
+            <div class="badges">
+                <span class="badge" id="version-badge">v0.3.0</span>
+                <span class="badge">MIT License</span>
+            </div>
+            <h1><span>SkollDice</span> - truly random dice generator</h1>
+            <p class="hero-desc">A fully functional dice generator that can produce real randomization when generating dice results.</p>
+        </div>
+
+        <!-- Story & Philosophy Structured Cards (Grid Layout) -->
+        <div class="story-section">
+            
+            <!-- Card 1: L'origine del problema -->
+            <div class="story-card">
+                <div>
+                    <h3>⚡ The Origin & The Problem</h3>
+                    <p>Hello everyone, I'm a student and programmer. I started this project as a research to fix the problem with both physical and online dices.</p>
+                    <p>I hear DMs that don't use specific dices or online generator because they're not really that balanced, but at the same time even physical dice can hide bubbles and have similar issues,</p>
+                    <p>so for this reason I decided to create a dice generator that could truly produce randomized numbers.</p>
+                </div>
+            </div>
+
+            <!-- Card 2: Open source & Visione multi-piattaforma -->
+            <div class="story-card">
+                <div>
+                    <h3>💻 Open Source & Multi-Platform Vision</h3>
+                    <p>I then decided to set it open source and I'm currently working on distributing it on different platforms, like a free Discord bot, a desktop app and a phone app in the future.</p>
+                    <p>The code is open for two main reasons, I wanted to help all the people in the world to solve this problem and let DMs and coders check if the code really does what the premise says.</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Support, Feedback & Altri progetti -->
+            <div class="story-card">
+                <div>
+                    <h3>☕ Feedback, Support & Other Projects</h3>
+                    <p>If there is any issue pls report a bug where you describe the issue so I can solve/discuss with you about the problem.</p>
+                    <p>Last thing, I'm currently working on improving the project a little more, if you want to support my work and time spent with a little donation you are more than welcome, thank you.</p>
+                    <p>And if you are a coder I suggest you to check my profile on Codeberg (<a href="https://codeberg.org/Skollwarynz" target="_blank">Skollwarynz</a>) with the link in the menu for other projects ;)</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Navigation Arrows Hub -->
+        <div class="nav-grid">
+            <a href="contribution.html" class="nav-card">
+                <span>Contribution & Design</span>
+                <span class="arrow">→</span>
+            </a>
+            <a href="downloads.html" class="nav-card">
+                <span>Desktop App & Binaries</span>
+                <span class="arrow">→</span>
+            </a>
+            <a href="bot.html" class="nav-card">
+                <span>Discord Bot Setup</span>
+                <span class="arrow">→</span>
+            </a>
+            <a href="proof.html" class="nav-card">
+                <span>Proof of Functioning</span>
+                <span class="arrow">→</span>
+            </a>
+            <a href="bugs.html" class="nav-card">
+                <span>Bugs & Issues</span>
+                <span class="arrow">→</span>
+            </a>
+            <a href="https://codeberg.org/Skollwarynz" target="_blank" class="nav-card">
+                <span>Repository (Codeberg)</span>
+                <span class="arrow">↗</span>
+            </a>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>SkollDice Open Source Project — Built with passion for developers and tabletop gamers.</p>
+    </footer>
+
+    <!-- Dynamic Version Script -->
+    <script>
+        const PROJECT_CONFIG = {
+            version: "v0.3.0"
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const versionBadge = document.getElementById("version-badge");
+            if (versionBadge) {
+                versionBadge.textContent = PROJECT_CONFIG.version;
+            }
+        });
+    </script>
+
+</body>
+</html>
