@@ -64,4 +64,6 @@ This was my real first big project, so I'm neither an icon designer nor a profes
 
 ## Donation
 
-This project was long and difficult to implement, and I'm currently working on a smartphone version to let any user have the commodity of using SkollDice. If you find this project important or useful, feel free to make a donation through "Buy me a Coffee" to support my work on open-source creation and all the other projects I'm currently creating for the programmers of the future.
+This project was long and difficult to implement, and I'm currently working on a smartphone version to let any user have the commodity of using SkollDice. If you find this project important or useful, feel free to make a donation through "Buy me an energy drink" to support my work on open-source creation and all the other projects I'm currently creating for the programmers of the future.
+
+You can <a href="https://ko-fi.com/skollwarynz" target="_blank">buy me an energy drink <span><img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi Logo" height="20" style="vertical-align: middle; margin-left: 5px;"></span></a> if you want to support my work! ⚡
