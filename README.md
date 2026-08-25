@@ -1,6 +1,7 @@
 # SkollDice - Truly Random Dice Generator
 
-[<img title="" src="file:///home/skollwarynz/DnD_truly_random_dice/SkollDice/assets/SkollDice_icon.png" alt="Build and Release All" width="235">]()
+[<img title="" src="SkollDice_Dekstop/assets/SkollDice_icon.png" alt="Build and Release All" width="235">]()
+
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 This project is a dice generator for RPG games that actually implements full random generation of the numbers used as results for the dice.
