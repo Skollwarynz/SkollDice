@@ -3,6 +3,10 @@
 #include <string.h>
 #include "../include/globals.h"
 
+
+//value tested to be one of the higher value where the code don't crash 
+//Not the best one but aneought the mtigate eventual dameges
+
 FILE* rand_reader = NULL;
 Dices types_and_number_of_dices[7] = {
     {0, D4},  {0, D6},  {0, D8},  {0, D10},
@@ -64,15 +68,21 @@ static void calculate (lv_event_t * e)
     lv_event_code_t code = lv_event_get_code(e);
 
     if(code == LV_EVENT_CLICKED) {
-
+        int max = 0;
         char results[9] = "bob";    
         if(label_output != NULL)
           lv_label_set_text(label_output, "");
         clear_textarea();
         int index_dices = 0;
+        
         while (index_dices < 7) {
           int number_of_generations = types_and_number_of_dices[index_dices].n;
           if (label_output != NULL && (number_of_generations > 0)) {
+              max += number_of_generations;
+              if(max >= CRASH_VALUE) {
+                lv_label_ins_text(label_output, LV_LABEL_POS_LAST, "ERROR! the number of generations required is too high, please try with a lower number");
+                return;
+              }
               snprintf(results, sizeof(results), "D%d: ", types_and_number_of_dices[index_dices].dices_type); 
               lv_label_ins_text(label_output, LV_LABEL_POS_LAST, results);
           }

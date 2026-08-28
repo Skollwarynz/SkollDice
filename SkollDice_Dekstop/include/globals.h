@@ -3,6 +3,8 @@
 
 #include "src.h" 
 
+#define CRASH_VALUE 12500
+
 // Backend gloabls
 // reader for /urandom
 extern FILE* rand_reader;

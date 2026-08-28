@@ -14,9 +14,11 @@ This project is a dice generator for RPG games that actually implements full ran
 2. [Project Structure](#project-structure)
 3. [Architecture](#architecture)
 4. [Calling All Artists & Designers!](#calling-all-artists--designers)
-5. [How to Report a Bug](#how-to-report-a-bug)
-6. [Suggestions](#suggestion)
-7. [Donation](#donation)
+5. [How to compile it on your machine](#calling-all-artists--designers)
+6. [How to Report a Bug](#how-to-report-a-bug)
+7. [Suggestions](#suggestion)
+8. [Donation](#donation)
+9. [Contributions](Contributions)
 
 ---
 
@@ -55,6 +57,26 @@ While I was creating SkollDice I didn't have time to focus on graphics in genera
 
 I really love art and Design so I decided to publish the 3D Blender model used for the Icon creations. Inside SkollDice/Assets you can download the original model and feel free to interpret and redesign it as you wish! I would be glad if any of you wanted to merge their request with a new logo or GUI.
 
+## How to import compile locally
+
+The project can be compiled using the Cmake file:
+
+```shell
+#clone the repository
+git clone https://codeberg.org/Skollwarynz/SkollDice.git --recursive
+cd SkollDice/SkollDice_Dekstop
+#create a bulld directory to put all the building assets inside
+mkdir build
+#compilation and linking 
+cmake .. 
+cmake --build .
+#after all the compilation
+#to run the program 
+./SkollDice_bin
+```
+
+If you find any bug during compilation 
+
 ## How to Report a Bug
 
 If you find a bug, please go to the "Issues" section and open a new one where you try to explain the input and behavior of the program so I can work on fixing it. Thank you!
@@ -62,6 +84,22 @@ If you find a bug, please go to the "Issues" section and open a new one where yo
 ## Suggestion
 
 This was my real first big project, so I'm neither an icon designer nor a professional Discord bot programmer. Any suggestions are welcome, and I will evaluate minor graphic changes over time.
+
+## Contributions
+
+This section is about some common fix or issue that different user helped me find or fix. 
+
+Boundy bug: 
+
+- questron64 (reddit username)
+
+- [rocq_roach](https://codeberg.org/rocq_roach)
+
+- 
+
+Code refactoring suggestions:
+
+- sciencekm (reddit username)
 
 ## Donation
 
